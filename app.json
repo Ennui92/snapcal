@@ -1,0 +1,67 @@
+{
+  "expo": {
+    "name": "SnapCal",
+    "slug": "snapcal",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "snapcal",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#faf8f4",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "dev.ermis.snapcal",
+      "infoPlist": {
+        "NSCameraUsageDescription": "SnapCal photographs your food to count calories."
+      }
+    },
+    "android": {
+      "package": "dev.ermis.snapcal",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#faf8f4",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "SnapCal photographs your food to count calories."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pick an older photo of a meal to log it."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#d97706"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#faf8f4",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 160
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SnapCal · Point. Shoot. Eat. Calorie counting from one photo</title>
+<meta name="description" content="SnapCal counts your calories from a single photo. Open the app, shoot your meal, go eat. The AI fills in calories in the background and your food diary never leaves your phone.">
+<link rel="canonical" href="https://ennui92.github.io/snapcal/">
+<meta name="theme-color" content="#faf8f4">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="SnapCal · Point. Shoot. Eat.">
+<meta property="og:description" content="Calorie counting from one photo. Zero typing, on-device diary, gentle nudges.">
+<meta property="og:image" content="https://ennui92.github.io/snapcal/assets/icon.png">
+<meta property="og:url" content="https://ennui92.github.io/snapcal/">
+<meta name="twitter:card" content="summary">
+
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&display=swap" rel="stylesheet">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "MobileApplication",
+  "name": "SnapCal",
+  "operatingSystem": "Android",
+  "applicationCategory": "HealthApplication",
+  "description": "Calorie tracking from a single photo. The camera opens, you shoot, the AI estimates the calories in the background. The food diary stays on the device.",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+  "author": { "@type": "Person", "name": "Ermis Zacharopoulos", "url": "https://ermis.dev" }
+}
+</script>
+
+<style>
+:root {
+  --bg: #faf8f4;
+  --card: #ffffff;
+  --border: #e6e3dc;
+  --ink: #2f2a24;
+  --muted: #6f6a60;
+  --amber: #d97706;
+  --amber-soft: #fdf0e0;
+  --green: #5f7d54;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(1200px 500px at 50% -10%, #fdf0e0 0%, rgba(253,240,224,0) 70%);
+  color: var(--ink);
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 720px; margin: 0 auto; padding: 0 22px; }
+h1, h2, h3 { font-family: "Fraunces", Georgia, serif; font-weight: 600; line-height: 1.15; }
+em, .accent { font-family: "Fraunces", Georgia, serif; font-style: italic; color: var(--amber); }
+
+.hero { padding: 72px 0 40px; text-align: center; }
+.hero img.icon { width: 96px; height: 96px; border-radius: 24px; box-shadow: 0 8px 30px rgba(28,24,19,.12); margin-bottom: 24px; }
+.hero h1 { font-size: clamp(38px, 7vw, 56px); margin-bottom: 14px; }
+.hero p.lead { font-size: 20px; color: var(--muted); max-width: 540px; margin: 0 auto 30px; }
+.kicker {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 999px;
+  padding: 6px 14px; font-size: 13px; color: var(--muted); margin-bottom: 20px;
+}
+.kicker .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+
+.btn {
+  display: inline-block; text-decoration: none; border-radius: 14px;
+  padding: 14px 26px; font-weight: 700; font-size: 16px;
+}
+.btn-primary { background: var(--amber); color: #fff; box-shadow: 0 6px 18px rgba(217,119,6,.28); }
+.btn-primary:hover { filter: brightness(1.06); }
+.btn-ghost { background: var(--card); color: var(--ink); border: 1px solid var(--border); margin-left: 8px; }
+.hero-note { font-size: 13px; color: var(--muted); margin-top: 14px; }
+
+.how { padding: 26px 0 8px; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
+@media (max-width: 620px) { .steps { grid-template-columns: 1fr; } }
+.step {
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 22px 18px; text-align: center;
+  box-shadow: 0 4px 12px rgba(28,24,19,.05);
+}
+.step .big { font-size: 34px; display: block; margin-bottom: 10px; }
+.step b { display: block; margin-bottom: 6px; font-size: 16px; }
+.step span { font-size: 14px; color: var(--muted); }
+
+section.block { padding: 38px 0 6px; }
+section.block h2 { font-size: 30px; margin-bottom: 8px; }
+section.block > .wrap > p { color: var(--muted); max-width: 620px; }
+
+.features { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 22px; }
+@media (max-width: 620px) { .features { grid-template-columns: 1fr; } }
+.feature {
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px; box-shadow: 0 4px 12px rgba(28,24,19,.05);
+}
+.feature .emoji { font-size: 24px; }
+.feature b { display: block; margin: 8px 0 4px; font-size: 16px; }
+.feature p { font-size: 14.5px; color: var(--muted); }
+
+.privacy {
+  margin-top: 42px; background: var(--amber-soft); border: 1px solid #f3ddc0;
+  border-radius: 14px; padding: 26px;
+}
+.privacy h2 { font-size: 24px; margin-bottom: 8px; }
+.privacy p { color: #7a5a33; font-size: 15.5px; }
+
+.download { text-align: center; padding: 52px 0 30px; }
+.download h2 { font-size: 32px; margin-bottom: 10px; }
+.download p { color: var(--muted); margin-bottom: 24px; }
+
+footer { border-top: 1px solid var(--border); margin-top: 50px; padding: 28px 0 44px; }
+footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 14px; color: var(--muted); }
+footer a { color: var(--amber); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <img class="icon" src="assets/icon.png" alt="SnapCal icon" width="96" height="96">
+    <div><span class="kicker"><span class="dot"></span> Android · free · your data stays yours</span></div>
+    <h1>Point. Shoot. <em>Eat.</em></h1>
+    <p class="lead">
+      SnapCal counts your calories from a single photo. No searching, no barcode scanning,
+      no typing grams into little boxes. Log a meal in the time it takes to photograph it.
+    </p>
+    <a class="btn btn-primary" href="https://github.com/Ennui92/snapcal/releases/download/android-latest/snapcal.apk">Download APK ↓</a>
+    <a class="btn btn-ghost" href="https://github.com/Ennui92/snapcal">Source</a>
+    <p class="hero-note">Android now, iOS when it earns it. Install by opening the APK on your phone.</p>
+  </div>
+</header>
+
+<section class="how">
+  <div class="wrap">
+    <div class="steps">
+      <div class="step"><span class="big">📸</span><b>Open, tap once</b><span>The app opens straight into the camera. One tap logs the meal, then go eat it.</span></div>
+      <div class="step"><span class="big">🤖</span><b>AI does the counting</b><span>In the background, Gemini vision names the food, sizes the portions and adds up the calories.</span></div>
+      <div class="step"><span class="big">🎯</span><b>You see the line</b><span>A daily budget from your one-time setup. Under it, weight comes off. The ring keeps the score.</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <div class="wrap">
+    <h2>Built for <em>zero</em> effort</h2>
+    <p>Every calorie app dies of too much typing. SnapCal's whole design is making the log entry cost nothing, so you actually keep doing it.</p>
+    <div class="features">
+      <div class="feature"><span class="emoji">🖐️</span><b>Your hand is the ruler</b><p>Put your hand next to the plate and the AI uses it for scale. Calibrated once during setup with your palm-to-fingertip length.</p></div>
+      <div class="feature"><span class="emoji">📦</span><b>Remembers your products</b><p>That chocolate bar, that soda can: recognized once, stored on your phone, reused instantly. People eat the same things, so repeat logging is consistent and fast.</p></div>
+      <div class="feature"><span class="emoji">🎚️</span><b>"I only ate half"</b><p>A big slider adjusts any entry to 0 to 100% eaten in two seconds. Items can be tweaked, removed or added if the AI missed something.</p></div>
+      <div class="feature"><span class="emoji">💬</span><b>Gentle nudges</b><p>If the day is running hot by noon, SnapCal quietly suggests a lighter dinner. You pick how firm it should be, from off to strict.</p></div>
+      <div class="feature"><span class="emoji">☕️</span><b>Everything counts</b><p>Meals, snacks, coffee, juice, that beer. Anything you can photograph, it can estimate: food, drink or a full tray.</p></div>
+      <div class="feature"><span class="emoji">📈</span><b>Honest history</b><p>Days on budget, net calorie balance and the estimated effect on your weight, shared as text whenever you feel like bragging.</p></div>
+    </div>
+
+    <div class="privacy">
+      <h2>Your food diary is <em>nobody's</em> business</h2>
+      <p>
+        SnapCal has no account, no cloud database and no analytics. Your entire history lives in a
+        database on your phone; export it as JSON any time. Photos are sent once for AI analysis
+        and stored nowhere else. We could not sell your data even if we wanted to. We do not have it.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="download">
+  <div class="wrap">
+    <h2>Try it on your <em>next</em> meal</h2>
+    <p>Free. Installs in seconds. Setup is four friendly questions, then you never fill a form again.</p>
+    <a class="btn btn-primary" href="https://github.com/Ennui92/snapcal/releases/download/android-latest/snapcal.apk">Download SnapCal for Android ↓</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Made by <a href="https://ermis.dev">Ermis</a> in Berlin</span>
+    <span><a href="https://github.com/Ennui92/snapcal">GitHub</a> · <a href="https://ennui92.github.io/eortes-site/">Eortes</a> · <a href="https://ermis.dev">more projects</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
