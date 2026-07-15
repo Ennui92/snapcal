@@ -44,7 +44,11 @@ npx expo prebuild --platform android
 cd android && ./gradlew :app:assembleRelease
 ```
 
-The release build is signed with the shared local `preview.jks` (same keystore as the other Ermis apps; see `_control-panel` docs). CI/EAS can be added later, the app is plain managed Expo.
+Local release builds are signed with the shared local `preview.jks` (same keystore as the other Ermis apps; see `_control-panel` docs).
+
+### CI
+
+`.github/workflows/android-apk.yml` builds the release APK on every push to `main` (and on manual dispatch) and publishes it to the [`android-latest`](https://github.com/Ennui92/snapcal/releases/tag/android-latest) release — the download URL above. It needs the `EXPO_PUBLIC_GEMINI_KEY` repo secret; optionally set `ANDROID_KEYSTORE_BASE64` / `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEY_ALIAS` (+ `ANDROID_KEY_PASSWORD`) to sign with `preview.jks` instead of the Expo debug keystore. Note: switching keystores changes the app signature, so a phone with an older differently-signed install needs an uninstall first.
 
 ## Scaling later
 
