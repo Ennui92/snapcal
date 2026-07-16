@@ -136,7 +136,7 @@ const fr: Record<keyof typeof en, string> = {
   'entry.errorGeneric': 'Quelque chose a mal tourné.',
   'entry.tryAgain': 'Réessayer',
   'entry.kcalFull': '{kcal} kcal pour l’assiette entière',
-  'entry.macros': '{p} g protéines · {c} g glucides · {f} g lipides',
+  'entry.macros': '{p} g protéines · {c} g glucides · {f} g lipides · {s} g sucre',
   'entry.howMuch': 'Tu en as mangé combien ?',
   'entry.onPlate': 'Dans l’assiette',
   'entry.savedFood': '📦 enregistré dans tes aliments',
@@ -217,6 +217,22 @@ const fr: Record<keyof typeof en, string> = {
   'nudge.afternoonBody': '{kcal} kcal restantes aujourd’hui. Un dîner plus léger te garde sur la bonne voie : légumes grillés, salade ou omelette feraient l’affaire.',
   'nudge.eveningTitle': 'Presque fini pour aujourd’hui',
   'nudge.eveningBody': '{kcal} kcal restantes. Si tu as faim plus tard, un yaourt ou un fruit passe bien. Tu gères.',
+
+  // added in 0.2.0: manual entry, sugar, time editing
+  'common.save': 'Enregistrer',
+  'entry.editTime': 'changer l\'heure',
+  'today.addManual': '✍️ ajouter sans photo',
+  'add.title': 'Ajouter un aliment à la main',
+  'add.lead': 'Pour les repas sans photo : la bière oubliée, un café à emporter, la part de gâteau d\'hier.',
+  'add.what': 'C\'était quoi ?',
+  'add.namePlaceholder': 'p. ex. cappuccino avec sucre',
+  'add.kcal': 'Calories',
+  'add.grams': 'Grammes (facultatif)',
+  'add.sugar': 'Sucre g (facultatif)',
+  'add.when': 'Quand ?',
+  'add.time': 'Heure',
+  'add.save': 'Enregistrer',
+  'entry.itemSugar': '{s} g sucre',
 };
 
 export default fr;

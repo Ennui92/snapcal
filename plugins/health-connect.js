@@ -3,9 +3,34 @@
 //  - a <queries> entry so the app can see the Health Connect package (Android 13-)
 //  - the permissions-rationale intent filter on MainActivity (Android 13-)
 //  - the ViewPermissionUsageActivity alias (Android 14+)
-const { AndroidConfig, withAndroidManifest } = require('expo/config-plugins');
+// and registers the permission delegate in MainActivity.onCreate. Without the
+// delegate, requestPermission() throws an uninitialized-lateinit exception in
+// native code and hard-crashes the app (the library's README step that bare
+// RN apps do by hand; prebuild regenerates MainActivity so it must be a mod).
+const { AndroidConfig, withAndroidManifest, withMainActivity } = require('expo/config-plugins');
+
+const DELEGATE_IMPORT = 'import dev.matinzd.healthconnect.permissions.HealthConnectPermissionDelegate';
+const DELEGATE_CALL = 'HealthConnectPermissionDelegate.setPermissionDelegate(this)';
+
+function withHealthConnectDelegate(config) {
+  return withMainActivity(config, (config) => {
+    let src = config.modResults.contents;
+    if (config.modResults.language !== 'kt') {
+      throw new Error('health-connect plugin expects a Kotlin MainActivity');
+    }
+    if (!src.includes(DELEGATE_IMPORT)) {
+      src = src.replace(/^(package .*)$/m, `$1\n\n${DELEGATE_IMPORT}`);
+    }
+    if (!src.includes(DELEGATE_CALL)) {
+      src = src.replace(/(super\.onCreate\([^)]*\))/, `$1\n    ${DELEGATE_CALL}`);
+    }
+    config.modResults.contents = src;
+    return config;
+  });
+}
 
 module.exports = function withHealthConnect(config) {
+  config = withHealthConnectDelegate(config);
   return withAndroidManifest(config, (config) => {
     const manifest = config.modResults.manifest;
 

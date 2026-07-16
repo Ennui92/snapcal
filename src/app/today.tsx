@@ -116,6 +116,9 @@ export default function TodayScreen() {
               <Pressable style={styles.badge} onPress={() => router.push('/stats')}>
                 <Text style={styles.badgeText}>{t('today.history')}</Text>
               </Pressable>
+              <Pressable style={styles.badge} onPress={() => router.push('/add')}>
+                <Text style={styles.badgeText}>{t('today.addManual')}</Text>
+              </Pressable>
             </View>
           </View>
         }
@@ -124,6 +127,9 @@ export default function TodayScreen() {
             <Text style={{ fontSize: 40, marginBottom: 8 }}>🍽️</Text>
             <Text style={styles.emptyTitle}>{t('today.emptyTitle')}</Text>
             <Text style={styles.emptyText}>{t('today.emptyText')}</Text>
+            <Pressable style={[styles.badge, { marginTop: 14 }]} onPress={() => router.push('/add')}>
+              <Text style={styles.badgeText}>{t('today.addManual')}</Text>
+            </Pressable>
           </View>
         }
         renderItem={({ item, index }) => (

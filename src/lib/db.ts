@@ -30,6 +30,7 @@ export type Entry = {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  sugarG: number;
 };
 
 export type Item = {
@@ -42,6 +43,7 @@ export type Item = {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  sugarG: number;
   isPackaged: number;
   kcalPer100g: number;
   confidence: number;
@@ -55,6 +57,7 @@ export type KnownProduct = {
   proteinPer100g: number;
   carbsPer100g: number;
   fatPer100g: number;
+  sugarPer100g: number;
   packageSizeGrams: number | null;
   timesSeen: number;
   lastSeenAt: string;
@@ -92,7 +95,8 @@ export function initDb() {
       totalKcal REAL NOT NULL DEFAULT 0,
       proteinG REAL NOT NULL DEFAULT 0,
       carbsG REAL NOT NULL DEFAULT 0,
-      fatG REAL NOT NULL DEFAULT 0
+      fatG REAL NOT NULL DEFAULT 0,
+      sugarG REAL NOT NULL DEFAULT 0
     );
     CREATE INDEX IF NOT EXISTS idx_entries_day ON entries(dayKey);
     CREATE TABLE IF NOT EXISTS items (
@@ -105,6 +109,7 @@ export function initDb() {
       proteinG REAL NOT NULL DEFAULT 0,
       carbsG REAL NOT NULL DEFAULT 0,
       fatG REAL NOT NULL DEFAULT 0,
+      sugarG REAL NOT NULL DEFAULT 0,
       isPackaged INTEGER NOT NULL DEFAULT 0,
       kcalPer100g REAL NOT NULL DEFAULT 0,
       confidence REAL NOT NULL DEFAULT 0
@@ -117,6 +122,7 @@ export function initDb() {
       proteinPer100g REAL NOT NULL DEFAULT 0,
       carbsPer100g REAL NOT NULL DEFAULT 0,
       fatPer100g REAL NOT NULL DEFAULT 0,
+      sugarPer100g REAL NOT NULL DEFAULT 0,
       packageSizeGrams REAL,
       timesSeen INTEGER NOT NULL DEFAULT 1,
       lastSeenAt TEXT NOT NULL,
@@ -141,6 +147,22 @@ export function initDb() {
     );
     INSERT OR IGNORE INTO profile (id) VALUES (1);
   `);
+  migrate();
+}
+
+// In-place migrations for phones that installed an older build. SQLite has no
+// ADD COLUMN IF NOT EXISTS, so failed ALTERs (column exists) are just ignored.
+function migrate() {
+  const addColumn = (table: string, columnDef: string) => {
+    try {
+      db.execSync(`ALTER TABLE ${table} ADD COLUMN ${columnDef}`);
+    } catch {
+      // column already there
+    }
+  };
+  addColumn('entries', 'sugarG REAL NOT NULL DEFAULT 0');
+  addColumn('items', 'sugarG REAL NOT NULL DEFAULT 0');
+  addColumn('known_products', 'sugarPer100g REAL NOT NULL DEFAULT 0');
 }
 
 // Day flips at 03:00 local: a 00:30 snack belongs to the previous day.
@@ -174,6 +196,33 @@ export function insertEntry(photoUri: string, mealType: string): number {
     now.toISOString(), dayKeyFor(now), photoUri, 'pending', mealType,
   );
   return Number(res.lastInsertRowId);
+}
+
+// A photo-less entry the user typed in themselves. Already "done": there is
+// nothing to analyze.
+export function insertManualEntry(opts: {
+  name: string; kcal: number; grams?: number; sugarG?: number; mealType: string; takenAt: Date;
+}): number {
+  const res = db.runSync(
+    'INSERT INTO entries (takenAt, dayKey, photoUri, status, mealType, description) VALUES (?, ?, NULL, ?, ?, ?)',
+    opts.takenAt.toISOString(), dayKeyFor(opts.takenAt), 'done', opts.mealType, opts.name,
+  );
+  const entryId = Number(res.lastInsertRowId);
+  db.runSync(
+    `INSERT INTO items (entryId, name, brand, portionGrams, kcal, proteinG, carbsG, fatG, sugarG, isPackaged, kcalPer100g, confidence)
+     VALUES (?,?,NULL,?,?,0,0,0,?,0,?,1)`,
+    entryId, opts.name, opts.grams ?? 0, opts.kcal, opts.sugarG ?? 0,
+    opts.grams && opts.grams > 0 ? (opts.kcal / opts.grams) * 100 : 0,
+  );
+  recomputeEntryTotals(entryId);
+  return entryId;
+}
+
+// Re-time an entry (same entry, corrected clock). The day it counts toward
+// moves with it.
+export function setEntryTime(id: number, takenAt: Date) {
+  db.runSync('UPDATE entries SET takenAt=?, dayKey=? WHERE id=?',
+    takenAt.toISOString(), dayKeyFor(takenAt), id);
 }
 
 export function getEntry(id: number): Entry | null {
@@ -212,10 +261,10 @@ export function replaceItems(entryId: number, items: Omit<Item, 'id' | 'entryId'
     db.runSync('DELETE FROM items WHERE entryId=?', entryId);
     for (const it of items) {
       db.runSync(
-        `INSERT INTO items (entryId, name, brand, portionGrams, kcal, proteinG, carbsG, fatG, isPackaged, kcalPer100g, confidence)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+        `INSERT INTO items (entryId, name, brand, portionGrams, kcal, proteinG, carbsG, fatG, sugarG, isPackaged, kcalPer100g, confidence)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
         entryId, it.name, it.brand, it.portionGrams, it.kcal, it.proteinG, it.carbsG, it.fatG,
-        it.isPackaged, it.kcalPer100g, it.confidence,
+        it.sugarG, it.isPackaged, it.kcalPer100g, it.confidence,
       );
     }
     recomputeEntryTotals(entryId);
@@ -227,8 +276,9 @@ export function updateItemPortion(itemId: number, portionGrams: number) {
   if (!it) return;
   const factor = it.portionGrams > 0 ? portionGrams / it.portionGrams : 0;
   db.runSync(
-    'UPDATE items SET portionGrams=?, kcal=?, proteinG=?, carbsG=?, fatG=? WHERE id=?',
-    portionGrams, it.kcal * factor, it.proteinG * factor, it.carbsG * factor, it.fatG * factor, itemId,
+    'UPDATE items SET portionGrams=?, kcal=?, proteinG=?, carbsG=?, fatG=?, sugarG=? WHERE id=?',
+    portionGrams, it.kcal * factor, it.proteinG * factor, it.carbsG * factor, it.fatG * factor,
+    it.sugarG * factor, itemId,
   );
   recomputeEntryTotals(it.entryId);
 }
@@ -242,20 +292,20 @@ export function deleteItem(itemId: number) {
 
 export function addManualItem(entryId: number, name: string, kcal: number) {
   db.runSync(
-    `INSERT INTO items (entryId, name, brand, portionGrams, kcal, proteinG, carbsG, fatG, isPackaged, kcalPer100g, confidence)
-     VALUES (?,?,NULL,0,?,0,0,0,0,0,1)`,
+    `INSERT INTO items (entryId, name, brand, portionGrams, kcal, proteinG, carbsG, fatG, sugarG, isPackaged, kcalPer100g, confidence)
+     VALUES (?,?,NULL,0,?,0,0,0,0,0,0,1)`,
     entryId, name, kcal,
   );
   recomputeEntryTotals(entryId);
 }
 
 export function recomputeEntryTotals(entryId: number) {
-  const row = db.getFirstSync<{ k: number; p: number; c: number; f: number }>(
-    'SELECT COALESCE(SUM(kcal),0) k, COALESCE(SUM(proteinG),0) p, COALESCE(SUM(carbsG),0) c, COALESCE(SUM(fatG),0) f FROM items WHERE entryId=?',
+  const row = db.getFirstSync<{ k: number; p: number; c: number; f: number; s: number }>(
+    'SELECT COALESCE(SUM(kcal),0) k, COALESCE(SUM(proteinG),0) p, COALESCE(SUM(carbsG),0) c, COALESCE(SUM(fatG),0) f, COALESCE(SUM(sugarG),0) s FROM items WHERE entryId=?',
     entryId,
   )!;
-  db.runSync('UPDATE entries SET totalKcal=?, proteinG=?, carbsG=?, fatG=? WHERE id=?',
-    row.k, row.p, row.c, row.f, entryId);
+  db.runSync('UPDATE entries SET totalKcal=?, proteinG=?, carbsG=?, fatG=?, sugarG=? WHERE id=?',
+    row.k, row.p, row.c, row.f, row.s, entryId);
 }
 
 export function setEntryAnalysis(entryId: number, description: string, mealType: string) {
@@ -296,7 +346,7 @@ export function findKnownProduct(name: string, brand: string | null): KnownProdu
 
 export function upsertKnownProduct(p: {
   name: string; brand: string | null; kcalPer100g: number; proteinPer100g: number;
-  carbsPer100g: number; fatPer100g: number; packageSizeGrams: number | null;
+  carbsPer100g: number; fatPer100g: number; sugarPer100g: number; packageSizeGrams: number | null;
 }) {
   const existing = findKnownProduct(p.name, p.brand);
   if (existing) {
@@ -306,10 +356,10 @@ export function upsertKnownProduct(p: {
     );
   } else {
     db.runSync(
-      `INSERT INTO known_products (name, brand, kcalPer100g, proteinPer100g, carbsPer100g, fatPer100g, packageSizeGrams, lastSeenAt)
-       VALUES (?,?,?,?,?,?,?,?)`,
+      `INSERT INTO known_products (name, brand, kcalPer100g, proteinPer100g, carbsPer100g, fatPer100g, sugarPer100g, packageSizeGrams, lastSeenAt)
+       VALUES (?,?,?,?,?,?,?,?,?)`,
       p.name, p.brand, p.kcalPer100g, p.proteinPer100g, p.carbsPer100g, p.fatPer100g,
-      p.packageSizeGrams, new Date().toISOString(),
+      p.sugarPer100g, p.packageSizeGrams, new Date().toISOString(),
     );
   }
 }

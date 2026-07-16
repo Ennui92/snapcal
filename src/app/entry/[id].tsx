@@ -11,7 +11,7 @@ import { BigButton, Card } from '@/components/ui';
 import { analyzeEntry } from '@/lib/analyzer';
 import {
   addManualItem, deleteEntry, deleteItem, getEntry, getItems,
-  setEntryEatenPct, updateItemPortion, type Entry, type Item,
+  setEntryEatenPct, setEntryTime, updateItemPortion, type Entry, type Item,
 } from '@/lib/db';
 import { localeTag, t } from '@/lib/i18n';
 import { fmtKcal, MEAL_EMOJI, mealLabel } from '@/lib/nutrition';
@@ -29,6 +29,8 @@ export default function EntryDetail() {
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [newKcal, setNewKcal] = useState('');
+  const [editingTime, setEditingTime] = useState(false);
+  const [timeInput, setTimeInput] = useState('');
 
   const load = useCallback(() => {
     const e = getEntry(entryId);
@@ -82,6 +84,26 @@ export default function EntryDetail() {
     load(); refresh();
   };
 
+  const startTimeEdit = () => {
+    const d = new Date(entry.takenAt);
+    setTimeInput(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
+    setEditingTime(true);
+  };
+
+  const saveTime = () => {
+    const m = timeInput.trim().match(/^(\d{1,2})[:.](\d{2})$/);
+    if (!m) return;
+    const h = Number(m[1]);
+    const min = Number(m[2]);
+    if (h > 23 || min > 59) return;
+    const d = new Date(entry.takenAt);
+    d.setHours(h, min);
+    setEntryTime(entryId, d);
+    setEditingTime(false);
+    Haptics.selectionAsync();
+    load(); refresh();
+  };
+
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
       <View style={styles.photoWrap}>
@@ -95,9 +117,32 @@ export default function EntryDetail() {
         <Text style={styles.title}>
           {MEAL_EMOJI[entry.mealType] ?? ''} {entry.status === 'done' ? entry.description : entry.status === 'error' ? t('entry.analysisFailed') : t('entry.analyzing')}
         </Text>
-        <Text style={styles.subtitle}>
-          {new Date(entry.takenAt).toLocaleString(localeTag(), { weekday: 'short', hour: '2-digit', minute: '2-digit' })} · {mealLabel(entry.mealType)}
-        </Text>
+        {editingTime ? (
+          <View style={styles.timeEditRow}>
+            <TextInput
+              value={timeInput}
+              onChangeText={setTimeInput}
+              placeholder="13:45"
+              placeholderTextColor={C.faint}
+              keyboardType="numbers-and-punctuation"
+              autoFocus
+              maxLength={5}
+              style={styles.timeInput}
+            />
+            <Pressable onPress={saveTime} style={styles.timeBtn}>
+              <Text style={{ color: '#fff', fontWeight: '700' }}>{t('common.save')}</Text>
+            </Pressable>
+            <Pressable onPress={() => setEditingTime(false)} style={[styles.timeBtn, styles.timeBtnGhost]}>
+              <Text style={{ color: C.muted, fontWeight: '600' }}>{t('common.cancel')}</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable onPress={startTimeEdit} hitSlop={6}>
+            <Text style={styles.subtitle}>
+              {new Date(entry.takenAt).toLocaleString(localeTag(), { weekday: 'short', hour: '2-digit', minute: '2-digit' })} · {mealLabel(entry.mealType)}  <Text style={{ color: C.amber }}>✏️ {t('entry.editTime')}</Text>
+            </Text>
+          </Pressable>
+        )}
 
         {entry.status === 'error' && (
           <Card style={{ marginTop: 12, backgroundColor: C.redSoft, borderColor: C.red }}>
@@ -116,6 +161,7 @@ export default function EntryDetail() {
               p: Math.round((entry.proteinG * pct) / 100),
               c: Math.round((entry.carbsG * pct) / 100),
               f: Math.round((entry.fatG * pct) / 100),
+              s: Math.round((entry.sugarG * pct) / 100),
             })}
           </Text>
         </Card>
@@ -153,6 +199,7 @@ export default function EntryDetail() {
               </Text>
               <Text style={styles.itemMeta}>
                 {it.portionGrams > 0 ? `${Math.round(it.portionGrams)}g · ` : ''}{fmtKcal(it.kcal)} kcal
+                {it.sugarG >= 1 ? ` · ${t('entry.itemSugar', { s: Math.round(it.sugarG) })}` : ''}
                 {it.isPackaged ? ` · ${t('entry.savedFood')}` : ''}
               </Text>
               {it.portionGrams > 0 && (
@@ -213,14 +260,22 @@ export default function EntryDetail() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  photoWrap: { width: '100%', height: 280, backgroundColor: '#141210' },
-  photo: { width: '100%', height: '100%' },
+  // contain, not cover: show the plate exactly as shot, letterboxed on dark
+  photoWrap: { width: '100%', height: 320, backgroundColor: '#141210' },
+  photo: { width: '100%', height: '100%', resizeMode: 'contain' },
   backBtn: {
     position: 'absolute', left: 14, backgroundColor: 'rgba(28,24,19,0.6)',
     paddingVertical: 7, paddingHorizontal: 14, borderRadius: radius.pill,
   },
   title: { fontFamily: F.heading, fontSize: 21, color: C.ink },
   subtitle: { color: C.muted, marginTop: 4, textTransform: 'capitalize' },
+  timeEditRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
+  timeInput: {
+    borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 14,
+    fontSize: 16, color: C.ink, minWidth: 84, textAlign: 'center', backgroundColor: C.card,
+  },
+  timeBtn: { backgroundColor: C.amber, borderRadius: 10, paddingVertical: 9, paddingHorizontal: 14 },
+  timeBtnGhost: { backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
   kcalBig: { fontFamily: F.heading, fontSize: 36, color: C.ink },
   kcalStrike: { color: C.faint, textDecorationLine: 'line-through', marginTop: 2 },
   macros: { color: C.muted, marginTop: 8, fontSize: 13 },

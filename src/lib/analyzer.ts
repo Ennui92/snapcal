@@ -25,6 +25,7 @@ type AiItem = {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  sugarG: number;
   isPackaged: boolean;
   packageSizeGrams?: number | null;
   kcalPer100g: number;
@@ -52,12 +53,13 @@ const RESPONSE_SCHEMA = {
           proteinG: { type: 'NUMBER' },
           carbsG: { type: 'NUMBER' },
           fatG: { type: 'NUMBER' },
+          sugarG: { type: 'NUMBER' },
           isPackaged: { type: 'BOOLEAN' },
           packageSizeGrams: { type: 'NUMBER', nullable: true },
           kcalPer100g: { type: 'NUMBER' },
           confidence: { type: 'NUMBER' },
         },
-        required: ['name', 'portionGrams', 'kcal', 'proteinG', 'carbsG', 'fatG', 'isPackaged', 'kcalPer100g', 'confidence'],
+        required: ['name', 'portionGrams', 'kcal', 'proteinG', 'carbsG', 'fatG', 'sugarG', 'isPackaged', 'kcalPer100g', 'confidence'],
       },
     },
     mealGuess: { type: 'STRING', enum: ['breakfast', 'lunch', 'dinner', 'snack', 'drink'] },
@@ -79,6 +81,7 @@ Rules:
 - If a human hand is visible, use it for scale. The user's hand measures ${handCm} cm from the start of the palm to the tip of the middle finger.
 - For packaged or branded products (soda cans, chocolate bars, snacks), identify the brand and product and use known nutrition data for the package size you see.
 - Estimate portions in grams or milliliters. Prefer slight overestimates to underestimates (users under-log).
+- sugarG is the total sugar in the portion (a subset of carbsG). Sodas, juices, sweets and sauces matter most; estimate 0 for water, plain coffee and unseasoned meat.
 - A meal can include multiple items and a drink. List each separately.
 - If the image contains no food or drink, return an empty items array with a description of what you see.
 - Plain water, black coffee and tea have roughly 0 to 5 kcal. Still list them.
@@ -165,6 +168,7 @@ export async function analyzeEntry(entryId: number): Promise<void> {
           proteinG: (known.proteinPer100g * g) / 100,
           carbsG: (known.carbsPer100g * g) / 100,
           fatG: (known.fatPer100g * g) / 100,
+          sugarG: known.sugarPer100g > 0 ? (known.sugarPer100g * g) / 100 : it.sugarG,
           kcalPer100g: known.kcalPer100g,
         };
       }
@@ -179,6 +183,7 @@ export async function analyzeEntry(entryId: number): Promise<void> {
       proteinG: it.proteinG,
       carbsG: it.carbsG,
       fatG: it.fatG,
+      sugarG: it.sugarG ?? 0,
       isPackaged: it.isPackaged ? 1 : 0,
       kcalPer100g: it.kcalPer100g,
       confidence: it.confidence,
@@ -195,6 +200,7 @@ export async function analyzeEntry(entryId: number): Promise<void> {
           proteinPer100g: (it.proteinG / g) * 100,
           carbsPer100g: (it.carbsG / g) * 100,
           fatPer100g: (it.fatG / g) * 100,
+          sugarPer100g: ((it.sugarG ?? 0) / g) * 100,
           packageSizeGrams: it.packageSizeGrams ?? null,
         });
       }

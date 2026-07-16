@@ -136,7 +136,7 @@ const es: Record<keyof typeof en, string> = {
   'entry.errorGeneric': 'Algo salió mal.',
   'entry.tryAgain': 'Reintentar',
   'entry.kcalFull': '{kcal} kcal por el plato entero',
-  'entry.macros': '{p} g proteína · {c} g hidratos · {f} g grasa',
+  'entry.macros': '{p} g proteína · {c} g hidratos · {f} g grasa · {s} g azúcar',
   'entry.howMuch': '¿Cuánto comiste?',
   'entry.onPlate': 'En el plato',
   'entry.savedFood': '📦 guardado en tus alimentos',
@@ -217,6 +217,22 @@ const es: Record<keyof typeof en, string> = {
   'nudge.afternoonBody': 'Quedan {kcal} kcal por hoy. Una cena más ligera te mantiene en línea: verduras a la plancha, una ensalada o una tortilla encajarían.',
   'nudge.eveningTitle': 'Casi listo por hoy',
   'nudge.eveningBody': 'Quedan {kcal} kcal. Si te entra hambre más tarde, cabe un yogur o algo de fruta. Lo llevas genial.',
+
+  // added in 0.2.0: manual entry, sugar, time editing
+  'common.save': 'Guardar',
+  'entry.editTime': 'cambiar hora',
+  'today.addManual': '✍️ añadir sin foto',
+  'add.title': 'Añadir comida a mano',
+  'add.lead': 'Para comidas sin foto: la cerveza olvidada, un café para llevar, el trozo de tarta de ayer.',
+  'add.what': '¿Qué era?',
+  'add.namePlaceholder': 'p. ej. capuchino con azúcar',
+  'add.kcal': 'Calorías',
+  'add.grams': 'Gramos (opcional)',
+  'add.sugar': 'Azúcar g (opcional)',
+  'add.when': '¿Cuándo?',
+  'add.time': 'Hora',
+  'add.save': 'Registrar',
+  'entry.itemSugar': '{s} g azúcar',
 };
 
 export default es;

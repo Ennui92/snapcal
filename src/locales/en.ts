@@ -148,7 +148,7 @@ const en = {
   'entry.errorGeneric': 'Something went wrong.',
   'entry.tryAgain': 'Try again',
   'entry.kcalFull': '{kcal} kcal for the full plate',
-  'entry.macros': '{p}g protein · {c}g carbs · {f}g fat',
+  'entry.macros': '{p}g protein · {c}g carbs · {f}g fat · {s}g sugar',
   'entry.howMuch': 'How much did you eat?',
   'entry.onPlate': 'On the plate',
   'entry.savedFood': '📦 saved to your foods',
@@ -232,6 +232,22 @@ const en = {
   'nudge.afternoonBody': '{kcal} kcal left for today. A lighter dinner keeps you on track: grilled veggies, a salad or an omelette would fit.',
   'nudge.eveningTitle': 'Almost done for today',
   'nudge.eveningBody': '{kcal} kcal left. If you get hungry later, a yogurt or some fruit fits. You have got this.',
+
+  // added in 0.2.0: manual entry, sugar, time editing
+  'common.save': 'Save',
+  'entry.editTime': 'change time',
+  'today.addManual': '✍️ add without photo',
+  'add.title': 'Add food manually',
+  'add.lead': 'For meals without a photo: the forgotten beer, a coffee to go, yesterday\'s slice of cake.',
+  'add.what': 'What was it?',
+  'add.namePlaceholder': 'e.g. cappuccino with sugar',
+  'add.kcal': 'Calories',
+  'add.grams': 'Grams (optional)',
+  'add.sugar': 'Sugar g (optional)',
+  'add.when': 'When?',
+  'add.time': 'Time',
+  'add.save': 'Log it',
+  'entry.itemSugar': '{s}g sugar',
 };
 
 export default en;

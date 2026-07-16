@@ -136,7 +136,7 @@ const el: Record<keyof typeof en, string> = {
   'entry.errorGeneric': 'Κάτι πήγε στραβά.',
   'entry.tryAgain': 'Δοκίμασε ξανά',
   'entry.kcalFull': '{kcal} kcal για ολόκληρο το πιάτο',
-  'entry.macros': '{p}γρ πρωτεΐνη · {c}γρ υδατάνθρακες · {f}γρ λίπος',
+  'entry.macros': '{p}γρ πρωτεΐνη · {c}γρ υδατάνθρακες · {f}γρ λίπος · {s}γρ ζάχαρη',
   'entry.howMuch': 'Πόσο από αυτό έφαγες;',
   'entry.onPlate': 'Στο πιάτο',
   'entry.savedFood': '📦 αποθηκεύτηκε στα τρόφιμά σου',
@@ -217,6 +217,22 @@ const el: Record<keyof typeof en, string> = {
   'nudge.afternoonBody': 'Μένουν {kcal} kcal για σήμερα. Ένα πιο ελαφρύ βραδινό σε κρατάει εντός: ψητά λαχανικά, σαλάτα ή μια ομελέτα θα ταίριαζαν.',
   'nudge.eveningTitle': 'Σχεδόν τέλος για σήμερα',
   'nudge.eveningBody': 'Μένουν {kcal} kcal. Αν πεινάσεις αργότερα, ένα γιαούρτι ή λίγα φρούτα χωράνε. Τα πας μια χαρά.',
+
+  // added in 0.2.0: manual entry, sugar, time editing
+  'common.save': 'Αποθήκευση',
+  'entry.editTime': 'άλλαξε ώρα',
+  'today.addManual': '✍️ προσθήκη χωρίς φωτογραφία',
+  'add.title': 'Χειροκίνητη καταχώρηση',
+  'add.lead': 'Για γεύματα χωρίς φωτογραφία: η ξεχασμένη μπύρα, ένας καφές στο πόδι, το χθεσινό κομμάτι τούρτα.',
+  'add.what': 'Τι ήταν;',
+  'add.namePlaceholder': 'π.χ. καπουτσίνο με ζάχαρη',
+  'add.kcal': 'Θερμίδες',
+  'add.grams': 'Γραμμάρια (προαιρετικό)',
+  'add.sugar': 'Ζάχαρη γρ (προαιρετικό)',
+  'add.when': 'Πότε;',
+  'add.time': 'Ώρα',
+  'add.save': 'Καταχώρησέ το',
+  'entry.itemSugar': '{s}γρ ζάχαρη',
 };
 
 export default el;

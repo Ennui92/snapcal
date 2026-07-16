@@ -136,7 +136,7 @@ const de: Record<keyof typeof en, string> = {
   'entry.errorGeneric': 'Etwas ist schiefgelaufen.',
   'entry.tryAgain': 'Nochmal versuchen',
   'entry.kcalFull': '{kcal} kcal für den ganzen Teller',
-  'entry.macros': '{p} g Eiweiß · {c} g Kohlenhydrate · {f} g Fett',
+  'entry.macros': '{p} g Eiweiß · {c} g Kohlenhydrate · {f} g Fett · {s} g Zucker',
   'entry.howMuch': 'Wie viel davon hast du gegessen?',
   'entry.onPlate': 'Auf dem Teller',
   'entry.savedFood': '📦 in deinen Lebensmitteln gespeichert',
@@ -217,6 +217,22 @@ const de: Record<keyof typeof en, string> = {
   'nudge.afternoonBody': '{kcal} kcal übrig für heute. Ein leichteres Abendessen hält dich auf Kurs: gegrilltes Gemüse, ein Salat oder ein Omelett passen.',
   'nudge.eveningTitle': 'Fast geschafft für heute',
   'nudge.eveningBody': '{kcal} kcal übrig. Falls du später Hunger bekommst, passt ein Joghurt oder etwas Obst. Du schaffst das.',
+
+  // added in 0.2.0: manual entry, sugar, time editing
+  'common.save': 'Speichern',
+  'entry.editTime': 'Zeit ändern',
+  'today.addManual': '✍️ ohne Foto hinzufügen',
+  'add.title': 'Essen manuell eintragen',
+  'add.lead': 'Für Mahlzeiten ohne Foto: das vergessene Bier, ein Coffee to go, das Stück Kuchen von gestern.',
+  'add.what': 'Was war es?',
+  'add.namePlaceholder': 'z. B. Cappuccino mit Zucker',
+  'add.kcal': 'Kalorien',
+  'add.grams': 'Gramm (optional)',
+  'add.sugar': 'Zucker g (optional)',
+  'add.when': 'Wann?',
+  'add.time': 'Uhrzeit',
+  'add.save': 'Eintragen',
+  'entry.itemSugar': '{s} g Zucker',
 };
 
 export default de;
