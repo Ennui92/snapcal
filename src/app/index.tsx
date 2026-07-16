@@ -10,8 +10,11 @@ import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedStyle, useSha
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system/legacy';
 import { C, F, radius } from '@/constants/theme';
+import { CameraTour } from '@/components/camera-tour';
+import { budgetForDay, syncActivity } from '@/lib/activity';
 import { analyzeEntry, retryPending } from '@/lib/analyzer';
-import { consumedForDay, dayKeyFor, getEntriesForDay, insertEntry, type Entry } from '@/lib/db';
+import { consumedForDay, dayKeyFor, getEntriesForDay, getMeta, insertEntry, setMeta, type Entry } from '@/lib/db';
+import { t } from '@/lib/i18n';
 import { fmtKcal, mealTypeForNow } from '@/lib/nutrition';
 import { useStore } from '@/lib/store';
 
@@ -37,14 +40,19 @@ export default function CameraScreen() {
 
   const [lastEntry, setLastEntry] = useState<Entry | null>(null);
   const [remaining, setRemaining] = useState(0);
+  const [showTour, setShowTour] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       const day = dayKeyFor(new Date());
-      setRemaining(profile.dailyBudgetKcal - consumedForDay(day));
+      const { budget } = budgetForDay(profile, day);
+      setRemaining(budget - consumedForDay(day));
       setLastEntry(getEntriesForDay(day)[0] ?? null);
+      if (profile.onboardedAt && getMeta('camera_tour_done') !== '1') setShowTour(true);
       retryPending();
-    }, [profile.dailyBudgetKcal, version]),
+      // Pull fresh workout data (throttled); refresh only when something landed.
+      void syncActivity().then(did => { if (did) refresh(); }).catch(() => {});
+    }, [profile, version, refresh]),
   );
 
   const shutterStyle = useAnimatedStyle(() => ({ transform: [{ scale: shutterScale.value }] }));
@@ -56,12 +64,10 @@ export default function CameraScreen() {
     return (
       <View style={[styles.root, styles.permissionBox]}>
         <Text style={styles.permissionEmoji}>📷</Text>
-        <Text style={styles.permissionTitle}>SnapCal is a camera</Text>
-        <Text style={styles.permissionText}>
-          Point it at your food, tap once, done. To do that it needs the camera.
-        </Text>
+        <Text style={styles.permissionTitle}>{t('cam.permTitle')}</Text>
+        <Text style={styles.permissionText}>{t('cam.permText')}</Text>
         <Pressable style={styles.permissionBtn} onPress={requestPermission}>
-          <Text style={styles.permissionBtnText}>Allow camera</Text>
+          <Text style={styles.permissionBtnText}>{t('cam.permBtn')}</Text>
         </Pressable>
       </View>
     );
@@ -72,7 +78,7 @@ export default function CameraScreen() {
     const id = insertEntry(stored, mealTypeForNow());
     void analyzeEntry(id).then(() => refresh());
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setToast('Logged. Enjoy your meal 🍴');
+    setToast(t('cam.logged'));
     setTimeout(() => setToast(null), 1800);
     refresh();
   };
@@ -88,7 +94,7 @@ export default function CameraScreen() {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.85 });
       if (photo?.uri) await logPhoto(photo.uri);
     } catch {
-      setToast('Could not take the photo. Try again.');
+      setToast(t('cam.photoFail'));
       setTimeout(() => setToast(null), 1800);
     } finally {
       setBusy(false);
@@ -110,11 +116,11 @@ export default function CameraScreen() {
       {/* top bar */}
       <View style={[styles.topBar, { top: insets.top + 8 }]}>
         <Pressable style={styles.pill} onPress={() => setFlash(f => (f === 'off' ? 'auto' : 'off'))}>
-          <Text style={styles.pillText}>{flash === 'off' ? '⚡ off' : '⚡ auto'}</Text>
+          <Text style={styles.pillText}>{flash === 'off' ? t('cam.flashOff') : t('cam.flashAuto')}</Text>
         </Pressable>
         <Pressable style={[styles.pill, remaining < 0 && { backgroundColor: 'rgba(194,86,75,0.85)' }]} onPress={() => router.push('/today')}>
           <Text style={styles.pillText}>
-            {remaining >= 0 ? `${fmtKcal(remaining)} kcal left` : `${fmtKcal(-remaining)} over`}
+            {remaining >= 0 ? t('cam.kcalLeft', { kcal: fmtKcal(remaining) }) : t('cam.kcalOver', { kcal: fmtKcal(-remaining) })}
           </Text>
         </Pressable>
       </View>
@@ -152,8 +158,12 @@ export default function CameraScreen() {
 
       {/* hint */}
       <Animated.View entering={FadeIn.delay(600)} style={[styles.hint, { bottom: insets.bottom + 130 }]}>
-        <Text style={styles.hintText}>tap the pill for today's log</Text>
+        <Text style={styles.hintText}>{t('cam.hint')}</Text>
       </Animated.View>
+
+      {showTour && (
+        <CameraTour onDone={() => { setMeta('camera_tour_done', '1'); setShowTour(false); }} />
+      )}
     </View>
   );
 }

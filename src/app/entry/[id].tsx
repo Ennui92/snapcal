@@ -13,7 +13,8 @@ import {
   addManualItem, deleteEntry, deleteItem, getEntry, getItems,
   setEntryEatenPct, updateItemPortion, type Entry, type Item,
 } from '@/lib/db';
-import { fmtKcal, MEAL_EMOJI } from '@/lib/nutrition';
+import { localeTag, t } from '@/lib/i18n';
+import { fmtKcal, MEAL_EMOJI, mealLabel } from '@/lib/nutrition';
 import { useStore } from '@/lib/store';
 
 export default function EntryDetail() {
@@ -59,10 +60,10 @@ export default function EntryDetail() {
   };
 
   const onDelete = () => {
-    Alert.alert('Delete this entry?', 'This cannot be undone.', [
-      { text: 'Keep it', style: 'cancel' },
+    Alert.alert(t('entry.deleteTitle'), t('entry.deleteBody'), [
+      { text: t('entry.keep'), style: 'cancel' },
       {
-        text: 'Delete', style: 'destructive',
+        text: t('entry.delete'), style: 'destructive',
         onPress: () => { deleteEntry(entryId); refresh(); router.back(); },
       },
     ]);
@@ -92,31 +93,35 @@ export default function EntryDetail() {
 
       <View style={{ padding: 16 }}>
         <Text style={styles.title}>
-          {MEAL_EMOJI[entry.mealType] ?? ''} {entry.status === 'done' ? entry.description : entry.status === 'error' ? 'Analysis failed' : 'Analyzing your plate…'}
+          {MEAL_EMOJI[entry.mealType] ?? ''} {entry.status === 'done' ? entry.description : entry.status === 'error' ? t('entry.analysisFailed') : t('entry.analyzing')}
         </Text>
         <Text style={styles.subtitle}>
-          {new Date(entry.takenAt).toLocaleString('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit' })} · {entry.mealType}
+          {new Date(entry.takenAt).toLocaleString(localeTag(), { weekday: 'short', hour: '2-digit', minute: '2-digit' })} · {mealLabel(entry.mealType)}
         </Text>
 
         {entry.status === 'error' && (
           <Card style={{ marginTop: 12, backgroundColor: C.redSoft, borderColor: C.red }}>
-            <Text style={{ color: C.red, marginBottom: 10 }}>{entry.errorMsg ?? 'Something went wrong.'}</Text>
-            <BigButton label="Try again" onPress={onReanalyze} />
+            <Text style={{ color: C.red, marginBottom: 10 }}>{entry.errorMsg ?? t('entry.errorGeneric')}</Text>
+            <BigButton label={t('entry.tryAgain')} onPress={onReanalyze} />
           </Card>
         )}
 
         <Card style={{ marginTop: 16, alignItems: 'center' }}>
           <Text style={styles.kcalBig}>{fmtKcal(consumed)} kcal</Text>
           {pct !== 100 && (
-            <Text style={styles.kcalStrike}>{fmtKcal(entry.totalKcal)} kcal for the full plate</Text>
+            <Text style={styles.kcalStrike}>{t('entry.kcalFull', { kcal: fmtKcal(entry.totalKcal) })}</Text>
           )}
           <Text style={styles.macros}>
-            {Math.round((entry.proteinG * pct) / 100)}g protein · {Math.round((entry.carbsG * pct) / 100)}g carbs · {Math.round((entry.fatG * pct) / 100)}g fat
+            {t('entry.macros', {
+              p: Math.round((entry.proteinG * pct) / 100),
+              c: Math.round((entry.carbsG * pct) / 100),
+              f: Math.round((entry.fatG * pct) / 100),
+            })}
           </Text>
         </Card>
 
         <Card style={{ marginTop: 12 }}>
-          <Text style={styles.sliderLabel}>How much did you eat?</Text>
+          <Text style={styles.sliderLabel}>{t('entry.howMuch')}</Text>
           <Text style={styles.sliderValue}>{pct}%</Text>
           <Slider
             minimumValue={0}
@@ -139,7 +144,7 @@ export default function EntryDetail() {
           </View>
         </Card>
 
-        <Text style={styles.sectionTitle}>On the plate</Text>
+        <Text style={styles.sectionTitle}>{t('entry.onPlate')}</Text>
         {items.map(it => (
           <Card key={it.id} style={styles.itemRow}>
             <View style={{ flex: 1 }}>
@@ -148,7 +153,7 @@ export default function EntryDetail() {
               </Text>
               <Text style={styles.itemMeta}>
                 {it.portionGrams > 0 ? `${Math.round(it.portionGrams)}g · ` : ''}{fmtKcal(it.kcal)} kcal
-                {it.isPackaged ? ' · 📦 saved to your foods' : ''}
+                {it.isPackaged ? ` · ${t('entry.savedFood')}` : ''}
               </Text>
               {it.portionGrams > 0 && (
                 <View style={styles.stepper}>
@@ -158,7 +163,7 @@ export default function EntryDetail() {
                       style={styles.stepBtn}
                       onPress={() => { updateItemPortion(it.id, it.portionGrams * f); load(); refresh(); }}
                     >
-                      <Text style={styles.stepBtnText}>{f < 1 ? 'smaller' : 'bigger'}</Text>
+                      <Text style={styles.stepBtnText}>{f < 1 ? t('entry.smaller') : t('entry.bigger')}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -177,29 +182,29 @@ export default function EntryDetail() {
         {adding ? (
           <Card style={{ marginTop: 4 }}>
             <TextInput
-              placeholder="What was it? (e.g. olive oil on the salad)"
+              placeholder={t('entry.addNamePlaceholder')}
               placeholderTextColor={C.faint}
               value={newName}
               onChangeText={setNewName}
               style={styles.input}
             />
             <TextInput
-              placeholder="Calories"
+              placeholder={t('entry.addKcalPlaceholder')}
               placeholderTextColor={C.faint}
               value={newKcal}
               onChangeText={setNewKcal}
               keyboardType="numeric"
               style={styles.input}
             />
-            <BigButton label="Add item" onPress={addItem} />
+            <BigButton label={t('entry.addItem')} onPress={addItem} />
           </Card>
         ) : (
-          <BigButton label="+ Add something the AI missed" kind="ghost" onPress={() => setAdding(true)} style={{ marginTop: 4 }} />
+          <BigButton label={t('entry.addMissed')} kind="ghost" onPress={() => setAdding(true)} style={{ marginTop: 4 }} />
         )}
 
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
-          <BigButton label="Re-analyze" kind="ghost" onPress={onReanalyze} style={{ flex: 1 }} />
-          <BigButton label="Delete" kind="ghost" onPress={onDelete} style={{ flex: 1 }} />
+          <BigButton label={t('entry.reanalyze')} kind="ghost" onPress={onReanalyze} style={{ flex: 1 }} />
+          <BigButton label={t('entry.delete')} kind="ghost" onPress={onDelete} style={{ flex: 1 }} />
         </View>
       </View>
     </ScrollView>

@@ -1,6 +1,6 @@
-// One-time setup. Four steps, then the user never has to touch a form again:
-// value prop, body stats (with live BMI), goal (with the budget reveal),
-// hand calibration + nudges.
+// One-time setup. Five steps, then the user never has to touch a form again:
+// value prop (+ language), a ten-second demo of the whole loop, body stats
+// (with live BMI), goal (with the budget reveal), hand calibration + nudges.
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
@@ -11,11 +11,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AVERAGE_HAND_CM } from '@/lib/config';
 import { C, F, radius } from '@/constants/theme';
 import { BigButton, Card, Chip } from '@/components/ui';
+import { DemoFlow } from '@/components/demo-flow';
 import { saveProfile, type Profile } from '@/lib/db';
-import { ACTIVITY_LABELS, bmi, bmiCategory, dailyBudget, fmtKcal, tdee } from '@/lib/nutrition';
+import { getLanguage, LANGS, setLanguage, t } from '@/lib/i18n';
+import { ACTIVITY_KEYS, activityLabel, bmi, bmiCategory, dailyBudget, fmtKcal, tdee } from '@/lib/nutrition';
 import { useStore } from '@/lib/store';
 
 type Draft = Omit<Profile, 'id' | 'dailyBudgetKcal' | 'onboardedAt'>;
+
+const STEPS = 5;
 
 export default function Onboarding() {
   const insets = useSafeAreaInsets();
@@ -51,7 +55,7 @@ export default function Onboarding() {
     >
       {/* progress dots */}
       <View style={styles.dots}>
-        {[0, 1, 2, 3].map(i => (
+        {Array.from({ length: STEPS }, (_, i) => (
           <View key={i} style={[styles.dot, i === step && styles.dotActive]} />
         ))}
       </View>
@@ -59,36 +63,56 @@ export default function Onboarding() {
       {step === 0 && (
         <Animated.View entering={FadeInRight} style={styles.stepBox}>
           <Text style={styles.hero}>📸</Text>
-          <Text style={styles.title}>Point. Shoot.{'\n'}<Text style={styles.titleAccent}>Eat.</Text></Text>
-          <Text style={styles.lead}>
-            SnapCal counts your calories from a single photo. No barcode scanning, no searching databases, no typing grams into little boxes.
-          </Text>
+          <Text style={styles.title}>{t('onb.heroTitle')}{'\n'}<Text style={styles.titleAccent}>{t('onb.heroAccent')}</Text></Text>
+          <Text style={styles.lead}>{t('onb.lead')}</Text>
           <Card style={{ marginTop: 20 }}>
-            <Bullet text="Open the app, the camera is already there" />
-            <Bullet text="One tap logs the meal, then go eat it" />
-            <Bullet text="The AI fills in calories in the background" />
-            <Bullet text="Your food diary stays on your phone. It is yours, we never see it" />
+            <Bullet text={t('onb.bullet1')} />
+            <Bullet text={t('onb.bullet2')} />
+            <Bullet text={t('onb.bullet3')} />
+            <Bullet text={t('onb.bullet4')} />
           </Card>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 18 }}>
+            {LANGS.map(l => (
+              <Chip
+                key={l.code}
+                label={l.label}
+                selected={getLanguage() === l.code}
+                onPress={() => { setLanguage(l.code); refresh(); }}
+              />
+            ))}
+          </View>
           <View style={{ flex: 1 }} />
-          <BigButton label="Set me up" onPress={next} />
+          <BigButton label={t('onb.setMeUp')} onPress={next} style={{ marginTop: 20 }} />
         </Animated.View>
       )}
 
       {step === 1 && (
         <Animated.View entering={FadeInRight} style={styles.stepBox}>
-          <Text style={styles.title}>About you</Text>
-          <Text style={styles.lead}>This is only used to work out your daily calorie budget. It never leaves the phone.</Text>
+          <Text style={styles.title}>{t('demo.title')}</Text>
+          <Text style={styles.lead}>{t('demo.lead')}</Text>
+          <View style={{ marginTop: 18 }}>
+            <DemoFlow />
+          </View>
+          <View style={{ flex: 1 }} />
+          <BigButton label={t('common.continue')} onPress={next} style={{ marginTop: 20 }} />
+        </Animated.View>
+      )}
+
+      {step === 2 && (
+        <Animated.View entering={FadeInRight} style={styles.stepBox}>
+          <Text style={styles.title}>{t('onb.aboutTitle')}</Text>
+          <Text style={styles.lead}>{t('onb.aboutLead')}</Text>
 
           <Card style={{ marginTop: 18 }}>
-            <FieldRow label="Sex">
+            <FieldRow label={t('onb.sex')}>
               <View style={{ flexDirection: 'row' }}>
-                <Chip label="Male" selected={d.sex === 'male'} onPress={() => set('sex', 'male')} />
-                <Chip label="Female" selected={d.sex === 'female'} onPress={() => set('sex', 'female')} />
+                <Chip label={t('onb.male')} selected={d.sex === 'male'} onPress={() => set('sex', 'male')} />
+                <Chip label={t('onb.female')} selected={d.sex === 'female'} onPress={() => set('sex', 'female')} />
               </View>
             </FieldRow>
-            <FieldRow label="Birth year"><Num value={d.birthYear} onChange={v => set('birthYear', v)} min={1920} max={2020} /></FieldRow>
-            <FieldRow label="Height (cm)"><Num value={d.heightCm} onChange={v => set('heightCm', v)} min={100} max={250} /></FieldRow>
-            <FieldRow label="Weight (kg)"><Num value={d.weightKg} onChange={v => set('weightKg', v)} min={25} max={350} /></FieldRow>
+            <FieldRow label={t('onb.birthYear')}><Num value={d.birthYear} onChange={v => set('birthYear', v)} min={1920} max={2020} /></FieldRow>
+            <FieldRow label={t('onb.height')}><Num value={d.heightCm} onChange={v => set('heightCm', v)} min={100} max={250} /></FieldRow>
+            <FieldRow label={t('onb.weight')}><Num value={d.weightKg} onChange={v => set('weightKg', v)} min={25} max={350} /></FieldRow>
           </Card>
 
           <Card style={{ marginTop: 12, backgroundColor: C.amberSoft, borderColor: C.amber }}>
@@ -96,36 +120,34 @@ export default function Onboarding() {
             <Text style={styles.bmiSub}>{bmiCategory(b)}</Text>
           </Card>
 
-          <Text style={[styles.lead, { marginTop: 18, marginBottom: 8 }]}>How active are you, honestly?</Text>
+          <Text style={[styles.lead, { marginTop: 18, marginBottom: 8 }]}>{t('onb.activityQ')}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-            {(Object.keys(ACTIVITY_LABELS) as Draft['activity'][]).map(a => (
-              <Chip key={a} label={ACTIVITY_LABELS[a]} selected={d.activity === a} onPress={() => set('activity', a)} />
+            {ACTIVITY_KEYS.map(a => (
+              <Chip key={a} label={activityLabel(a)} selected={d.activity === a} onPress={() => set('activity', a)} />
             ))}
           </View>
 
           <View style={{ flex: 1 }} />
-          <BigButton label="Continue" onPress={next} style={{ marginTop: 20 }} />
+          <BigButton label={t('common.continue')} onPress={next} style={{ marginTop: 20 }} />
         </Animated.View>
       )}
 
-      {step === 2 && (
+      {step === 3 && (
         <Animated.View entering={FadeInRight} style={styles.stepBox}>
-          <Text style={styles.title}>Your goal</Text>
-          <Text style={styles.lead}>
-            Losing weight means eating under what your body burns. SnapCal keeps the score so you always know which side of the line today is on.
-          </Text>
+          <Text style={styles.title}>{t('onb.goalTitle')}</Text>
+          <Text style={styles.lead}>{t('onb.goalLead')}</Text>
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 18 }}>
-            <Chip label="Lose weight" selected={d.goal === 'lose'} onPress={() => set('goal', 'lose')} />
-            <Chip label="Maintain" selected={d.goal === 'maintain'} onPress={() => set('goal', 'maintain')} />
-            <Chip label="Gain" selected={d.goal === 'gain'} onPress={() => set('goal', 'gain')} />
+            <Chip label={t('goal.lose')} selected={d.goal === 'lose'} onPress={() => set('goal', 'lose')} />
+            <Chip label={t('goal.maintain')} selected={d.goal === 'maintain'} onPress={() => set('goal', 'maintain')} />
+            <Chip label={t('goal.gain')} selected={d.goal === 'gain'} onPress={() => set('goal', 'gain')} />
           </View>
           {d.goal !== 'maintain' && (
             <>
-              <Text style={[styles.lead, { marginTop: 12, marginBottom: 6 }]}>How fast?</Text>
+              <Text style={[styles.lead, { marginTop: 12, marginBottom: 6 }]}>{t('onb.howFast')}</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                 {[0.25, 0.5, 0.75, 1].map(pace => (
-                  <Chip key={pace} label={`${pace} kg/week`} selected={d.paceKgPerWeek === pace} onPress={() => set('paceKgPerWeek', pace)} />
+                  <Chip key={pace} label={t('onb.pace', { pace })} selected={d.paceKgPerWeek === pace} onPress={() => set('paceKgPerWeek', pace)} />
                 ))}
               </View>
             </>
@@ -133,57 +155,53 @@ export default function Onboarding() {
 
           <Animated.View entering={FadeInDown.springify()} key={budget} style={{ marginTop: 22 }}>
             <Card style={{ alignItems: 'center', paddingVertical: 24 }}>
-              <Text style={styles.budgetLabel}>Your daily budget</Text>
+              <Text style={styles.budgetLabel}>{t('onb.budgetLabel')}</Text>
               <Text style={styles.budgetBig}>{fmtKcal(budget)} kcal</Text>
               <Text style={styles.budgetSub}>
-                Your body burns about {fmtKcal(maintenance)} kcal a day.{' '}
+                {t('onb.budgetBurn', { kcal: fmtKcal(maintenance) })}{' '}
                 {d.goal === 'lose'
-                  ? `Eating ${fmtKcal(maintenance - budget)} under that is what makes weight come off.`
+                  ? t('onb.budgetLose', { kcal: fmtKcal(maintenance - budget) })
                   : d.goal === 'gain'
-                    ? 'Eating above that is what builds mass.'
-                    : 'Matching it keeps you steady.'}
+                    ? t('onb.budgetGain')
+                    : t('onb.budgetMaintain')}
               </Text>
             </Card>
           </Animated.View>
 
           <View style={{ flex: 1 }} />
-          <BigButton label="Continue" onPress={next} style={{ marginTop: 20 }} />
+          <BigButton label={t('common.continue')} onPress={next} style={{ marginTop: 20 }} />
         </Animated.View>
       )}
 
-      {step === 3 && (
+      {step === 4 && (
         <Animated.View entering={FadeInRight} style={styles.stepBox}>
-          <Text style={styles.title}>Two last tricks</Text>
+          <Text style={styles.title}>{t('onb.tricksTitle')}</Text>
 
           <Card style={{ marginTop: 16 }}>
-            <Text style={styles.cardTitle}>🖐️ Your hand is the ruler</Text>
-            <Text style={styles.cardText}>
-              Put your hand next to the plate in photos and the AI uses it to judge portion sizes. Measure from where your palm starts to the tip of your middle finger.
-            </Text>
+            <Text style={styles.cardTitle}>{t('onb.handTitle')}</Text>
+            <Text style={styles.cardText}>{t('onb.handText')}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 12 }}>
               <Num value={d.handCm} onChange={v => set('handCm', v)} min={10} max={30} decimal />
-              <Text style={{ color: C.muted }}>cm</Text>
+              <Text style={{ color: C.muted }}>{t('common.cm')}</Text>
               <Pressable onPress={() => set('handCm', AVERAGE_HAND_CM)}>
-                <Text style={{ color: C.amber, fontWeight: '600' }}>use average ({AVERAGE_HAND_CM})</Text>
+                <Text style={{ color: C.amber, fontWeight: '600' }}>{t('onb.useAverage', { v: AVERAGE_HAND_CM })}</Text>
               </Pressable>
             </View>
           </Card>
 
           <Card style={{ marginTop: 12 }}>
-            <Text style={styles.cardTitle}>💬 Gentle nudges</Text>
-            <Text style={styles.cardText}>
-              If a day is running hot, SnapCal can send one friendly heads-up with a lighter idea for your next meal. How firm should it be?
-            </Text>
+            <Text style={styles.cardTitle}>{t('onb.nudgeTitle')}</Text>
+            <Text style={styles.cardText}>{t('onb.nudgeText')}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 12 }}>
-              <Chip label="Off" selected={d.strictness === 'off'} onPress={() => set('strictness', 'off')} />
-              <Chip label="Gentle" selected={d.strictness === 'gentle'} onPress={() => set('strictness', 'gentle')} />
-              <Chip label="Normal" selected={d.strictness === 'normal'} onPress={() => set('strictness', 'normal')} />
-              <Chip label="Strict" selected={d.strictness === 'strict'} onPress={() => set('strictness', 'strict')} />
+              <Chip label={t('strict.off')} selected={d.strictness === 'off'} onPress={() => set('strictness', 'off')} />
+              <Chip label={t('strict.gentle')} selected={d.strictness === 'gentle'} onPress={() => set('strictness', 'gentle')} />
+              <Chip label={t('strict.normal')} selected={d.strictness === 'normal'} onPress={() => set('strictness', 'normal')} />
+              <Chip label={t('strict.strict')} selected={d.strictness === 'strict'} onPress={() => set('strictness', 'strict')} />
             </View>
           </Card>
 
           <View style={{ flex: 1 }} />
-          <BigButton label="Open the camera 📸" onPress={finish} style={{ marginTop: 20 }} />
+          <BigButton label={t('onb.openCamera')} onPress={finish} style={{ marginTop: 20 }} />
         </Animated.View>
       )}
     </ScrollView>

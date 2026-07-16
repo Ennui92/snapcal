@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedProps, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { C, F } from '@/constants/theme';
+import { t } from '@/lib/i18n';
 import { fmtKcal } from '@/lib/nutrition';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -44,8 +45,8 @@ export function BudgetRing({ consumed, budget, size = 210 }: { consumed: number;
       <Text style={[styles.big, { color: remaining >= 0 ? C.ink : C.red }]}>
         {fmtKcal(Math.abs(remaining))}
       </Text>
-      <Text style={styles.label}>{remaining >= 0 ? 'kcal left' : 'kcal over'}</Text>
-      <Text style={styles.sub}>{fmtKcal(consumed)} of {fmtKcal(budget)}</Text>
+      <Text style={styles.label}>{remaining >= 0 ? t('ring.left') : t('ring.over')}</Text>
+      <Text style={styles.sub}>{t('ring.of', { consumed: fmtKcal(consumed), budget: fmtKcal(budget) })}</Text>
     </View>
   );
 }
