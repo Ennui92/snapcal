@@ -8,11 +8,13 @@ import {
   ANALYZER_PROXY_URL, GEMINI_API_KEY, GEMINI_BASE, MODEL_FALLBACK, MODEL_PRIMARY,
   UPLOAD_JPEG_QUALITY, UPLOAD_WIDTH,
 } from './config';
+import { budgetForDay } from './activity';
 import {
   consumedForDay, dayKeyFor, findKnownProduct, getEntry, getItems, getKnownProducts,
   getMeta, getPendingEntries, getProfile, replaceItems, setEntryAnalysis, setEntryStatus,
   setMeta, upsertKnownProduct,
 } from './db';
+import { getLanguage, LANG_NAME_EN, localeTag } from './i18n';
 import { checkPace } from './nutrition';
 
 type AiItem = {
@@ -65,6 +67,7 @@ const RESPONSE_SCHEMA = {
 };
 
 function buildSystemPrompt(handCm: number): string {
+  const language = LANG_NAME_EN[getLanguage()];
   const known = getKnownProducts(30);
   const knownBlock = known.length
     ? `\nThe user regularly consumes these known products (from their personal history). If the photo shows one of them, reuse these exact per-100g values instead of guessing:\n` +
@@ -78,11 +81,12 @@ Rules:
 - Estimate portions in grams or milliliters. Prefer slight overestimates to underestimates (users under-log).
 - A meal can include multiple items and a drink. List each separately.
 - If the image contains no food or drink, return an empty items array with a description of what you see.
-- Plain water, black coffee and tea have roughly 0 to 5 kcal. Still list them.${knownBlock}`;
+- Plain water, black coffee and tea have roughly 0 to 5 kcal. Still list them.
+- Write all item names and the description in ${language}. Keep brand and product names exactly as printed on the packaging.${knownBlock}`;
 }
 
 async function callGemini(model: string, base64: string, handCm: number, takenAt: Date): Promise<AiResult> {
-  const when = takenAt.toLocaleString('en-GB', { weekday: 'long', hour: '2-digit', minute: '2-digit' });
+  const when = takenAt.toLocaleString(localeTag(), { weekday: 'long', hour: '2-digit', minute: '2-digit' });
   const body = {
     systemInstruction: { parts: [{ text: buildSystemPrompt(handCm) }] },
     contents: [{
@@ -219,8 +223,12 @@ async function maybeNudge(): Promise<void> {
   try {
     const profile = getProfile();
     const now = new Date();
-    const consumed = consumedForDay(dayKeyFor(now));
-    const nudge = checkPace(profile, consumed, now);
+    const dayKey = dayKeyFor(now);
+    const consumed = consumedForDay(dayKey);
+    // Pace against the day's effective budget, so a tracked morning run
+    // doesn't trigger a scolding about a perfectly earned lunch.
+    const { budget } = budgetForDay(profile, dayKey);
+    const nudge = checkPace(profile, budget, consumed, now);
     if (!nudge) return;
 
     const last = getMeta('lastNudgeAt');

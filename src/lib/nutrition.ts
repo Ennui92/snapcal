@@ -1,5 +1,6 @@
 // Calorie math: BMR (Mifflin-St Jeor), TDEE, budget, BMI, pacing and nudges.
 import type { Profile } from './db';
+import { localeTag, t, type TKey } from './i18n';
 
 export const ACTIVITY_FACTORS: Record<Profile['activity'], number> = {
   sedentary: 1.2,
@@ -9,13 +10,11 @@ export const ACTIVITY_FACTORS: Record<Profile['activity'], number> = {
   very_active: 1.9,
 };
 
-export const ACTIVITY_LABELS: Record<Profile['activity'], string> = {
-  sedentary: 'Mostly sitting',
-  light: 'On my feet sometimes',
-  moderate: 'Active most days',
-  active: 'Training hard',
-  very_active: 'Athlete mode',
-};
+export const ACTIVITY_KEYS = Object.keys(ACTIVITY_FACTORS) as Profile['activity'][];
+
+export function activityLabel(a: Profile['activity']): string {
+  return t(`act.${a}` as TKey);
+}
 
 export function bmr(p: Pick<Profile, 'sex' | 'birthYear' | 'heightCm' | 'weightKg'>): number {
   const age = new Date().getFullYear() - p.birthYear;
@@ -27,14 +26,29 @@ export function tdee(p: Pick<Profile, 'sex' | 'birthYear' | 'heightCm' | 'weight
   return Math.round(bmr(p) * ACTIVITY_FACTORS[p.activity]);
 }
 
+type BudgetInput = Omit<Profile, 'id' | 'dailyBudgetKcal' | 'onboardedAt' | 'strictness' | 'handCm'>;
+
 // 1 kg of body fat is roughly 7700 kcal.
-export function dailyBudget(p: Omit<Profile, 'id' | 'dailyBudgetKcal' | 'onboardedAt' | 'strictness' | 'handCm'>): number {
-  const maintenance = tdee(p);
+function applyGoal(maintenance: number, p: Pick<BudgetInput, 'sex' | 'goal' | 'paceKgPerWeek'>): number {
   const delta = (p.paceKgPerWeek * 7700) / 7;
   const raw = p.goal === 'lose' ? maintenance - delta : p.goal === 'gain' ? maintenance + delta : maintenance;
   // Never go below a sane floor.
   const floor = p.sex === 'male' ? 1500 : 1200;
   return Math.round(Math.max(raw, floor));
+}
+
+export function dailyBudget(p: BudgetInput): number {
+  return applyGoal(tdee(p), p);
+}
+
+// Budget for a specific day when a fitness tracker reported the workout burn.
+// The static activity multiplier from setup already *guesses* exercise, so we
+// don't add on top of it — that would double-count. Instead the day is rebuilt
+// from a sedentary baseline plus what was actually tracked.
+export function effectiveBudget(p: Profile, trackedActiveKcal: number | null): number {
+  if (trackedActiveKcal == null) return p.dailyBudgetKcal;
+  const maintenance = Math.round(bmr(p) * ACTIVITY_FACTORS.sedentary) + Math.round(trackedActiveKcal);
+  return applyGoal(maintenance, p);
 }
 
 export function bmi(heightCm: number, weightKg: number): number {
@@ -43,10 +57,10 @@ export function bmi(heightCm: number, weightKg: number): number {
 }
 
 export function bmiCategory(v: number): string {
-  if (v < 18.5) return 'under the typical range';
-  if (v < 25) return 'in the typical range';
-  if (v < 30) return 'above the typical range';
-  return 'well above the typical range';
+  if (v < 18.5) return t('bmi.under');
+  if (v < 25) return t('bmi.typical');
+  if (v < 30) return t('bmi.above');
+  return t('bmi.wellAbove');
 }
 
 // Expected fraction of the daily budget consumed by a given hour.
@@ -67,10 +81,10 @@ const STRICTNESS_FACTOR: Record<Profile['strictness'], number> = {
 export type Nudge = { title: string; body: string };
 
 // Returns a nudge when the user is ahead of pace, null otherwise.
-export function checkPace(profile: Profile, consumed: number, now: Date): Nudge | null {
+// `budget` is the day's effective budget (may include tracked workouts).
+export function checkPace(profile: Profile, budget: number, consumed: number, now: Date): Nudge | null {
   const factor = STRICTNESS_FACTOR[profile.strictness];
   if (!isFinite(factor)) return null;
-  const budget = profile.dailyBudgetKcal;
   const expected = expectedFractionByHour(now.getHours() + now.getMinutes() / 60) * budget * factor;
   if (consumed <= expected) return null;
 
@@ -78,31 +92,19 @@ export function checkPace(profile: Profile, consumed: number, now: Date): Nudge 
   const hour = now.getHours();
 
   if (remaining <= 0) {
-    return {
-      title: 'Budget reached for today',
-      body: 'You are at your calories for the day. Water, tea or a walk beats a snack right now. Tomorrow is a fresh start.',
-    };
+    return { title: t('nudge.doneTitle'), body: t('nudge.doneBody') };
   }
   if (hour < 15) {
-    return {
-      title: 'Heads up, big morning',
-      body: `You have ${remaining} kcal left and most of the day ahead. Maybe keep lunch or dinner light: a salad, soup or a yogurt would fit nicely.`,
-    };
+    return { title: t('nudge.morningTitle'), body: t('nudge.morningBody', { kcal: remaining }) };
   }
   if (hour < 19) {
-    return {
-      title: 'Save room for dinner',
-      body: `${remaining} kcal left for today. A lighter dinner keeps you on track: grilled veggies, a salad or an omelette would fit.`,
-    };
+    return { title: t('nudge.afternoonTitle'), body: t('nudge.afternoonBody', { kcal: remaining }) };
   }
-  return {
-    title: 'Almost done for today',
-    body: `${remaining} kcal left. If you get hungry later, a yogurt or some fruit fits. You have got this.`,
-  };
+  return { title: t('nudge.eveningTitle'), body: t('nudge.eveningBody', { kcal: remaining }) };
 }
 
 export function fmtKcal(n: number): string {
-  return Math.round(n).toLocaleString('en-US');
+  return Math.round(n).toLocaleString(localeTag());
 }
 
 // Guess meal from local time; the AI may refine it later.
@@ -122,3 +124,10 @@ export const MEAL_EMOJI: Record<string, string> = {
   snack: '🍎',
   drink: '☕️',
 };
+
+const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack', 'drink'];
+
+// Localized meal name; unknown types (older data, odd AI output) pass through.
+export function mealLabel(type: string): string {
+  return MEAL_TYPES.includes(type) ? t(`meal.${type}` as TKey) : type;
+}

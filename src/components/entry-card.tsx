@@ -3,10 +3,11 @@ import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'rea
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { C, F, radius, shadow } from '@/constants/theme';
 import type { Entry } from '@/lib/db';
-import { fmtKcal, MEAL_EMOJI } from '@/lib/nutrition';
+import { localeTag, t } from '@/lib/i18n';
+import { fmtKcal, MEAL_EMOJI, mealLabel } from '@/lib/nutrition';
 
 export function EntryCard({ entry, onPress, index = 0 }: { entry: Entry; onPress: () => void; index?: number }) {
-  const time = new Date(entry.takenAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const time = new Date(entry.takenAt).toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit' });
   const consumed = (entry.totalKcal * entry.eatenPct) / 100;
 
   return (
@@ -24,12 +25,12 @@ export function EntryCard({ entry, onPress, index = 0 }: { entry: Entry; onPress
             {entry.status === 'done' && entry.description
               ? entry.description
               : entry.status === 'error'
-                ? 'Analysis failed. Tap to retry.'
-                : 'Looking at your plate…'}
+                ? t('card.failed')
+                : t('card.looking')}
           </Text>
           <Text style={styles.meta}>
-            {MEAL_EMOJI[entry.mealType] ?? ''} {entry.mealType} · {time}
-            {entry.eatenPct !== 100 ? ` · ate ${entry.eatenPct}%` : ''}
+            {MEAL_EMOJI[entry.mealType] ?? ''} {mealLabel(entry.mealType)} · {time}
+            {entry.eatenPct !== 100 ? ` · ${t('card.ate', { pct: entry.eatenPct })}` : ''}
           </Text>
         </View>
         <View style={{ alignItems: 'flex-end', minWidth: 64 }}>

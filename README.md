@@ -19,6 +19,9 @@ Every calorie app dies the same death: too much typing. Search the food, pick th
 - Gentle nudges if a day runs hot ("maybe a yogurt tonight"), strictness is yours to pick
 - Share your day/week/month as text
 - Your food diary never leaves the phone: no account, no cloud database, no analytics
+- Speaks English, Ελληνικά, Deutsch, Español and Français — picked automatically from the phone, changeable in settings; the AI describes meals in the same language
+- A ten-second demo inside onboarding plus first-launch coach marks on the camera, so nobody has to guess how it works
+- Fitness sync: connect **Strava** and/or **Google Health Connect** (Google Fit's successor — also covers Garmin, Samsung Health etc.) and tracked workout calories raise that day's budget. Move more, eat more. Apple Health lands with the iOS build.
 
 ## Architecture
 
@@ -27,11 +30,21 @@ Expo (React Native) + expo-router, SQLite on device, Gemini for vision.
 ```
 src/
   app/            screens (camera is the home screen)
-  lib/db.ts       SQLite: entries, items, known products, weights, profile
+  lib/db.ts       SQLite: entries, items, known products, weights, activity days, profile
   lib/analyzer.ts photo -> Gemini -> items + kcal, retry queue, known-product merge
   lib/nutrition.ts BMR (Mifflin-St Jeor), TDEE, budget, pace curve, nudges
-  components/     budget ring, entry cards, big friendly buttons
+  lib/i18n.ts     five languages, device-locale default, choice persisted on device
+  lib/activity.ts fitness sync orchestration + workout-aware daily budgets
+  lib/strava.ts   Strava OAuth + per-day calorie sync (pure JS)
+  lib/health-connect.ts  Google Health Connect reads (Android native module)
+  locales/        en, el, de, es, fr dictionaries
+  components/     budget ring, entry cards, onboarding demo, camera tour
 ```
+
+Budget math with fitness sync: on a day with tracked workouts the budget is
+rebuilt as sedentary TDEE + tracked burn (+ goal delta) instead of the static
+activity multiplier from setup, so exercise never double-counts. When two
+sources report the same day, the larger single number is used once.
 
 Privacy model: photos are uploaded once to the Generative Language API for analysis and the response is stored locally. Nothing else ever leaves the device. The known-products cache lives on the phone too, which also keeps API usage (and cost) down since people eat the same things repeatedly.
 
@@ -40,6 +53,10 @@ Privacy model: photos are uploaded once to the Generative Language API for analy
 ```bash
 npm install
 echo "EXPO_PUBLIC_GEMINI_KEY=<your key>" > .env   # aistudio.google.com/apikey, or mint one on your own GCP project
+# optional, enables the Strava connection in the built app (strava.com/settings/api,
+# set the OAuth app's callback domain to `snapcal`):
+echo "EXPO_PUBLIC_STRAVA_CLIENT_ID=<id>" >> .env
+echo "EXPO_PUBLIC_STRAVA_CLIENT_SECRET=<secret>" >> .env
 npx expo prebuild --platform android
 cd android && ./gradlew :app:assembleRelease
 ```
@@ -48,7 +65,7 @@ Local release builds are signed with the shared local `preview.jks` (same keysto
 
 ### CI
 
-`.github/workflows/android-apk.yml` builds the release APK on every push to `main` (and on manual dispatch) and publishes it to the [`android-latest`](https://github.com/Ennui92/snapcal/releases/tag/android-latest) release — the download URL above. It needs the `EXPO_PUBLIC_GEMINI_KEY` repo secret; optionally set `ANDROID_KEYSTORE_BASE64` / `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEY_ALIAS` (+ `ANDROID_KEY_PASSWORD`) to sign with `preview.jks` instead of the Expo debug keystore. Note: switching keystores changes the app signature, so a phone with an older differently-signed install needs an uninstall first.
+`.github/workflows/android-apk.yml` builds the release APK on every push to `main` (and on manual dispatch) and publishes it to the [`android-latest`](https://github.com/Ennui92/snapcal/releases/tag/android-latest) release — the download URL above. Pull requests get the same build published as a workflow artifact instead, so native/dependency breakage surfaces before merge. It needs the `EXPO_PUBLIC_GEMINI_KEY` repo secret; optionally set `EXPO_PUBLIC_STRAVA_CLIENT_ID` / `EXPO_PUBLIC_STRAVA_CLIENT_SECRET` to enable the Strava connection, and `ANDROID_KEYSTORE_BASE64` / `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEY_ALIAS` (+ `ANDROID_KEY_PASSWORD`) to sign with `preview.jks` instead of the Expo debug keystore. Note: switching keystores changes the app signature, so a phone with an older differently-signed install needs an uninstall first.
 
 ## Scaling later
 

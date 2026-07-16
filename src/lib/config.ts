@@ -11,6 +11,13 @@
 export const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_KEY ?? '';
 export const ANALYZER_PROXY_URL = process.env.EXPO_PUBLIC_ANALYZER_PROXY_URL ?? '';
 
+// Strava OAuth app credentials (strava.com/settings/api), baked at bundle
+// time like the Gemini key. When absent the Strava card explains that this
+// build can't connect. The "secret" of a mobile OAuth app is public by
+// nature; Strava scopes it to reading your own activities.
+export const STRAVA_CLIENT_ID = process.env.EXPO_PUBLIC_STRAVA_CLIENT_ID ?? '';
+export const STRAVA_CLIENT_SECRET = process.env.EXPO_PUBLIC_STRAVA_CLIENT_SECRET ?? '';
+
 export const MODEL_PRIMARY = 'gemini-3-flash-preview';
 export const MODEL_FALLBACK = 'gemini-3.1-flash-lite';
 

@@ -131,6 +131,14 @@ export function initDb() {
       key TEXT PRIMARY KEY,
       value TEXT
     );
+    CREATE TABLE IF NOT EXISTS activity_days (
+      dayKey TEXT NOT NULL,
+      source TEXT NOT NULL,
+      activeKcal REAL NOT NULL DEFAULT 0,
+      steps INTEGER NOT NULL DEFAULT 0,
+      syncedAt TEXT NOT NULL,
+      PRIMARY KEY (dayKey, source)
+    );
     INSERT OR IGNORE INTO profile (id) VALUES (1);
   `);
 }
@@ -315,6 +323,39 @@ export function getWeights(): { date: string; weightKg: number }[] {
   return db.getAllSync('SELECT date, weightKg FROM weights ORDER BY date ASC');
 }
 
+// --- tracked workout burn (synced from fitness apps) ---
+
+export type ActivityDay = { dayKey: string; source: string; activeKcal: number; steps: number; syncedAt: string };
+
+export function upsertActivityDay(d: Omit<ActivityDay, 'syncedAt'>) {
+  db.runSync(
+    `INSERT INTO activity_days (dayKey, source, activeKcal, steps, syncedAt) VALUES (?,?,?,?,?)
+     ON CONFLICT(dayKey, source) DO UPDATE SET activeKcal=excluded.activeKcal, steps=excluded.steps, syncedAt=excluded.syncedAt`,
+    d.dayKey, d.source, d.activeKcal, d.steps, new Date().toISOString(),
+  );
+}
+
+// Two connected sources often see the same workout (e.g. Strava also feeds
+// Health Connect), so per day we take the largest single source, never a sum.
+export function trackedBurnForDay(dayKey: string): number | null {
+  const row = db.getFirstSync<{ burn: number | null }>(
+    'SELECT MAX(activeKcal) burn FROM activity_days WHERE dayKey=?', dayKey,
+  );
+  return row?.burn ?? null;
+}
+
+export function trackedBurnForRange(fromDayKey: string, toDayKey: string): Map<string, number> {
+  const rows = db.getAllSync<{ dayKey: string; burn: number }>(
+    'SELECT dayKey, MAX(activeKcal) burn FROM activity_days WHERE dayKey >= ? AND dayKey <= ? GROUP BY dayKey',
+    fromDayKey, toDayKey,
+  );
+  return new Map(rows.map(r => [r.dayKey, r.burn]));
+}
+
+export function clearActivitySource(source: string) {
+  db.runSync('DELETE FROM activity_days WHERE source=?', source);
+}
+
 export function getMeta(key: string): string | null {
   const row = db.getFirstSync<{ value: string }>('SELECT value FROM meta WHERE key=?', key);
   return row?.value ?? null;
@@ -332,5 +373,6 @@ export function exportAllData(): string {
     items: db.getAllSync('SELECT * FROM items'),
     knownProducts: db.getAllSync('SELECT * FROM known_products'),
     weights: getWeights(),
+    activityDays: db.getAllSync('SELECT * FROM activity_days'),
   }, null, 2);
 }

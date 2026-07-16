@@ -1,13 +1,16 @@
-// Settings: everything from onboarding, editable. Plus weight logging,
-// nudge strictness, hand calibration and a full data export.
+// Settings: everything from onboarding, editable. Plus language, fitness
+// connections, weight logging, nudge strictness, hand calibration and a
+// full data export.
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C, F } from '@/constants/theme';
 import { BigButton, Card, Chip, Section } from '@/components/ui';
-import { exportAllData, logWeight, saveProfile, type Profile } from '@/lib/db';
-import { ACTIVITY_LABELS, bmi, bmiCategory, dailyBudget, fmtKcal } from '@/lib/nutrition';
+import { anyProviderConnected, connectedProviderNames } from '@/lib/activity';
+import { exportAllData, logWeight, saveProfile, setMeta, type Profile } from '@/lib/db';
+import { getLanguage, LANGS, setLanguage, t } from '@/lib/i18n';
+import { ACTIVITY_KEYS, activityLabel, bmi, bmiCategory, dailyBudget, fmtKcal } from '@/lib/nutrition';
 import { useStore } from '@/lib/store';
 
 export default function SettingsScreen() {
@@ -39,11 +42,17 @@ export default function SettingsScreen() {
     setP(next);
     setWeightInput('');
     refresh();
-    Alert.alert('Weight logged', `Budget recalculated: ${fmtKcal(next.dailyBudgetKcal)} kcal/day.`);
+    Alert.alert(t('set.weightLogged'), t('set.weightLoggedBody', { kcal: fmtKcal(next.dailyBudgetKcal) }));
   };
 
   const onExport = async () => {
     await Share.share({ message: exportAllData() });
+  };
+
+  const replayTour = () => {
+    setMeta('camera_tour_done', '');
+    refresh();
+    router.replace('/');
   };
 
   const preview = recalc(p);
@@ -53,109 +62,129 @@ export default function SettingsScreen() {
     <ScrollView style={styles.root} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 40, paddingHorizontal: 16 }}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.headerBtn}><Text style={{ fontSize: 16 }}>‹</Text></Pressable>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerTitle}>{t('set.title')}</Text>
         <View style={{ width: 42 }} />
       </View>
 
-      <Section title="Your numbers">
+      <Section title={t('set.language')}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+          {LANGS.map(l => (
+            <Chip
+              key={l.code}
+              label={l.label}
+              selected={getLanguage() === l.code}
+              onPress={() => { setLanguage(l.code); refresh(); }}
+            />
+          ))}
+        </View>
+        <Text style={styles.hintText}>{t('set.aiLangNote')}</Text>
+      </Section>
+
+      <Section title={t('set.yourNumbers')}>
         <Card>
-          <Row label="Height (cm)">
+          <Row label={t('onb.height')}>
             <NumInput value={String(p.heightCm)} onChange={v => set('heightCm', clampNum(v, 100, 250, p.heightCm))} />
           </Row>
-          <Row label="Weight (kg)">
+          <Row label={t('onb.weight')}>
             <NumInput value={String(p.weightKg)} onChange={v => set('weightKg', clampNum(v, 25, 350, p.weightKg))} />
           </Row>
-          <Row label="Birth year">
+          <Row label={t('onb.birthYear')}>
             <NumInput value={String(p.birthYear)} onChange={v => set('birthYear', clampNum(v, 1920, 2020, p.birthYear))} />
           </Row>
-          <Row label="Sex">
+          <Row label={t('onb.sex')}>
             <View style={{ flexDirection: 'row' }}>
-              <Chip label="Male" selected={p.sex === 'male'} onPress={() => set('sex', 'male')} />
-              <Chip label="Female" selected={p.sex === 'female'} onPress={() => set('sex', 'female')} />
+              <Chip label={t('onb.male')} selected={p.sex === 'male'} onPress={() => set('sex', 'male')} />
+              <Chip label={t('onb.female')} selected={p.sex === 'female'} onPress={() => set('sex', 'female')} />
             </View>
           </Row>
           <Text style={styles.bmiNote}>BMI {b} ({bmiCategory(b)})</Text>
         </Card>
       </Section>
 
-      <Section title="Activity">
+      <Section title={t('set.activity')}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-          {(Object.keys(ACTIVITY_LABELS) as Profile['activity'][]).map(a => (
-            <Chip key={a} label={ACTIVITY_LABELS[a]} selected={p.activity === a} onPress={() => set('activity', a)} />
+          {ACTIVITY_KEYS.map(a => (
+            <Chip key={a} label={activityLabel(a)} selected={p.activity === a} onPress={() => set('activity', a)} />
           ))}
         </View>
       </Section>
 
-      <Section title="Goal">
+      <Section title={t('set.fitness')}>
+        <Card>
+          <Text style={styles.hintText}>
+            {anyProviderConnected()
+              ? t('set.fitnessConnected', { names: connectedProviderNames().join(' + ') })
+              : t('set.fitnessNotConnected')}
+          </Text>
+          <BigButton label={t('set.manageConnections')} kind="ghost" onPress={() => router.push('/connections')} />
+        </Card>
+      </Section>
+
+      <Section title={t('set.goal')}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-          <Chip label="Lose weight" selected={p.goal === 'lose'} onPress={() => set('goal', 'lose')} />
-          <Chip label="Maintain" selected={p.goal === 'maintain'} onPress={() => set('goal', 'maintain')} />
-          <Chip label="Gain" selected={p.goal === 'gain'} onPress={() => set('goal', 'gain')} />
+          <Chip label={t('goal.lose')} selected={p.goal === 'lose'} onPress={() => set('goal', 'lose')} />
+          <Chip label={t('goal.maintain')} selected={p.goal === 'maintain'} onPress={() => set('goal', 'maintain')} />
+          <Chip label={t('goal.gain')} selected={p.goal === 'gain'} onPress={() => set('goal', 'gain')} />
         </View>
         {p.goal !== 'maintain' && (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 }}>
             {[0.25, 0.5, 0.75, 1].map(pace => (
-              <Chip key={pace} label={`${pace} kg/week`} selected={p.paceKgPerWeek === pace} onPress={() => set('paceKgPerWeek', pace)} />
+              <Chip key={pace} label={t('onb.pace', { pace })} selected={p.paceKgPerWeek === pace} onPress={() => set('paceKgPerWeek', pace)} />
             ))}
           </View>
         )}
         <Card style={{ marginTop: 10 }}>
-          <Text style={styles.budgetPreview}>Daily budget: {fmtKcal(preview.dailyBudgetKcal)} kcal</Text>
+          <Text style={styles.budgetPreview}>{t('set.dailyBudget', { kcal: fmtKcal(preview.dailyBudgetKcal) })}</Text>
           <Text style={styles.budgetSub}>
             {p.goal === 'lose'
-              ? 'Staying under this line is what makes the scale move down.'
+              ? t('set.goalLoseNote')
               : p.goal === 'gain'
-                ? 'Staying above this line supports your gain goal.'
-                : 'This keeps you where you are.'}
+                ? t('set.goalGainNote')
+                : t('set.goalMaintainNote')}
           </Text>
         </Card>
       </Section>
 
-      <Section title="Nudges">
+      <Section title={t('set.nudges')}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-          <Chip label="Off" selected={p.strictness === 'off'} onPress={() => set('strictness', 'off')} />
-          <Chip label="Gentle" selected={p.strictness === 'gentle'} onPress={() => set('strictness', 'gentle')} />
-          <Chip label="Normal" selected={p.strictness === 'normal'} onPress={() => set('strictness', 'normal')} />
-          <Chip label="Strict" selected={p.strictness === 'strict'} onPress={() => set('strictness', 'strict')} />
+          <Chip label={t('strict.off')} selected={p.strictness === 'off'} onPress={() => set('strictness', 'off')} />
+          <Chip label={t('strict.gentle')} selected={p.strictness === 'gentle'} onPress={() => set('strictness', 'gentle')} />
+          <Chip label={t('strict.normal')} selected={p.strictness === 'normal'} onPress={() => set('strictness', 'normal')} />
+          <Chip label={t('strict.strict')} selected={p.strictness === 'strict'} onPress={() => set('strictness', 'strict')} />
         </View>
-        <Text style={styles.hintText}>
-          If a day is running hot, SnapCal sends one friendly heads-up with a lighter idea for the next meal. Never more than one every few hours.
-        </Text>
+        <Text style={styles.hintText}>{t('set.nudgeNote')}</Text>
       </Section>
 
-      <Section title="Hand calibration">
+      <Section title={t('set.hand')}>
         <Card>
-          <Text style={styles.hintText}>
-            Include your hand in photos and the AI uses it as a ruler. Measure from where your palm starts to the tip of your middle finger.
-          </Text>
-          <Row label="Hand length (cm)">
+          <Text style={styles.hintText}>{t('onb.handText')}</Text>
+          <Row label={t('set.handLen')}>
             <NumInput value={String(p.handCm)} onChange={v => set('handCm', clampNum(v, 10, 30, p.handCm))} />
           </Row>
         </Card>
       </Section>
 
-      <Section title="Log today's weight">
+      <Section title={t('set.logWeight')}>
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <TextInput
-            placeholder="e.g. 78.4"
+            placeholder={t('set.weightPlaceholder')}
             placeholderTextColor={C.faint}
             keyboardType="decimal-pad"
             value={weightInput}
             onChangeText={setWeightInput}
             style={[styles.input, { flex: 1, marginBottom: 0 }]}
           />
-          <BigButton label="Log" onPress={onLogWeight} style={{ paddingVertical: 12, paddingHorizontal: 20 }} />
+          <BigButton label={t('set.log')} onPress={onLogWeight} style={{ paddingVertical: 12, paddingHorizontal: 20 }} />
         </Card>
       </Section>
 
-      <Section title="Your data">
-        <Text style={styles.hintText}>
-          Everything lives on this phone. No account, no cloud database, no tracking. Photos are sent once for analysis and are not stored anywhere else.
-        </Text>
-        <BigButton label="Export everything (JSON)" kind="ghost" onPress={onExport} />
+      <Section title={t('set.yourData')}>
+        <Text style={styles.hintText}>{t('set.dataNote')}</Text>
+        <BigButton label={t('set.export')} kind="ghost" onPress={onExport} />
+        <BigButton label={t('set.replayTour')} kind="ghost" onPress={replayTour} style={{ marginTop: 10 }} />
       </Section>
 
-      <BigButton label="Save changes" onPress={save} style={{ marginTop: 8 }} />
+      <BigButton label={t('set.save')} onPress={save} style={{ marginTop: 8 }} />
     </ScrollView>
   );
 }

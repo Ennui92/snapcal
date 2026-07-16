@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { C } from '@/constants/theme';
 import { retryPending } from '@/lib/analyzer';
 import { initDb } from '@/lib/db';
+import { initLanguage } from '@/lib/i18n';
 import { StoreProvider } from '@/lib/store';
 
 SplashScreen.preventAutoHideAsync();
@@ -23,6 +24,7 @@ Notifications.setNotificationHandler({
 });
 
 initDb();
+initLanguage();
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ Fraunces_600SemiBold, Fraunces_500Medium_Italic });
