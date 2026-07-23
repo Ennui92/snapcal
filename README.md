@@ -4,6 +4,7 @@ Point. Shoot. Eat. A calorie tracker with almost zero interaction: open the app,
 
 **Landing page:** https://ennui92.github.io/snapcal/
 **Download:** [latest Android APK](https://github.com/Ennui92/snapcal/releases/download/android-latest/snapcal.apk)
+**Strategy:** [docs/GTM.md](docs/GTM.md) · **Roadmap:** [PLANS.md](PLANS.md)
 
 ## Why it exists
 
@@ -22,6 +23,19 @@ Every calorie app dies the same death: too much typing. Search the food, pick th
 - Speaks English, Ελληνικά, Deutsch, Español and Français — picked automatically from the phone, changeable in settings; the AI describes meals in the same language
 - A ten-second demo inside onboarding plus first-launch coach marks on the camera, so nobody has to guess how it works
 - Fitness sync: connect **Strava** and/or **Google Health Connect** (Google Fit's successor — also covers Garmin, Samsung Health etc.) and tracked workout calories raise that day's budget. Move more, eat more. Apple Health lands with the iOS build.
+
+## Design
+
+The visual system is called **Darkroom** and lives in `src/constants/theme.ts`.
+The app is a camera, so it looks like one: near-black surfaces, a single acid
+lime accent (`#C8FA3C`), tight corners, Archivo for display type and IBM Plex
+Mono for every number the user is judged by. Icons are hand-drawn 24px paths in
+`src/components/icons.tsx`, never emoji. A film-grain overlay keeps the dark
+surfaces from going flat.
+
+Rules worth keeping: no emoji in the UI, numbers are always monospaced, one
+accent colour only (lime for on track, ember for near the limit, red for over),
+and corners stay tight (rounding everything is what makes an app look generic).
 
 ## Architecture
 
