@@ -14,8 +14,9 @@ import {
   setEntryEatenPct, setEntryTime, updateItemPortion, type Entry, type Item,
 } from '@/lib/db';
 import { localeTag, t } from '@/lib/i18n';
-import { fmtKcal, MEAL_EMOJI, mealLabel } from '@/lib/nutrition';
+import { fmtKcal, mealLabel } from '@/lib/nutrition';
 import { useStore } from '@/lib/store';
+import { Icon } from '@/components/icons';
 
 export default function EntryDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -109,13 +110,13 @@ export default function EntryDetail() {
       <View style={styles.photoWrap}>
         {entry.photoUri && <Image source={{ uri: entry.photoUri }} style={styles.photo} />}
         <Pressable onPress={() => router.back()} style={[styles.backBtn, { top: insets.top + 8 }]}>
-          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>‹ back</Text>
+          <Icon name="back" size={18} color={C.ink} weight={2.2} />
         </Pressable>
       </View>
 
       <View style={{ padding: 16 }}>
         <Text style={styles.title}>
-          {MEAL_EMOJI[entry.mealType] ?? ''} {entry.status === 'done' ? entry.description : entry.status === 'error' ? t('entry.analysisFailed') : t('entry.analyzing')}
+          {entry.status === 'done' ? entry.description : entry.status === 'error' ? t('entry.analysisFailed') : t('entry.analyzing')}
         </Text>
         {editingTime ? (
           <View style={styles.timeEditRow}>
@@ -130,7 +131,7 @@ export default function EntryDetail() {
               style={styles.timeInput}
             />
             <Pressable onPress={saveTime} style={styles.timeBtn}>
-              <Text style={{ color: '#fff', fontWeight: '700' }}>{t('common.save')}</Text>
+              <Text style={{ color: C.onSignal, fontWeight: '700' }}>{t('common.save')}</Text>
             </Pressable>
             <Pressable onPress={() => setEditingTime(false)} style={[styles.timeBtn, styles.timeBtnGhost]}>
               <Text style={{ color: C.muted, fontWeight: '600' }}>{t('common.cancel')}</Text>
@@ -139,7 +140,7 @@ export default function EntryDetail() {
         ) : (
           <Pressable onPress={startTimeEdit} hitSlop={6}>
             <Text style={styles.subtitle}>
-              {new Date(entry.takenAt).toLocaleString(localeTag(), { weekday: 'short', hour: '2-digit', minute: '2-digit' })} · {mealLabel(entry.mealType)}  <Text style={{ color: C.amber }}>✏️ {t('entry.editTime')}</Text>
+              {new Date(entry.takenAt).toLocaleString(localeTag(), { weekday: 'short', hour: '2-digit', minute: '2-digit' })} · {mealLabel(entry.mealType)}  <Text style={{ color: C.signal }}>{t('entry.editTime')}</Text>
             </Text>
           </Pressable>
         )}
@@ -221,7 +222,7 @@ export default function EntryDetail() {
               hitSlop={10}
               style={{ paddingLeft: 10 }}
             >
-              <Text style={{ fontSize: 16, color: C.faint }}>✕</Text>
+              <Icon name="close" size={15} color={C.faint} weight={2} />
             </Pressable>
           </Card>
         ))}

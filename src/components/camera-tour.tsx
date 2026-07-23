@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(20,18,16,0.62)', zIndex: 20,
   },
-  ring: { position: 'absolute', borderWidth: 3, borderColor: '#fff' },
+  ring: { position: 'absolute', borderWidth: 3, borderColor: C.signal },
   tip: {
     position: 'absolute', backgroundColor: C.card, borderRadius: radius.card,
     padding: 16, borderWidth: 1, borderColor: C.border,

@@ -16,6 +16,7 @@ import { saveProfile, type Profile } from '@/lib/db';
 import { getLanguage, LANGS, setLanguage, t } from '@/lib/i18n';
 import { ACTIVITY_KEYS, activityLabel, bmi, bmiCategory, dailyBudget, fmtKcal, tdee } from '@/lib/nutrition';
 import { useStore } from '@/lib/store';
+import { Icon } from '@/components/icons';
 
 type Draft = Omit<Profile, 'id' | 'dailyBudgetKcal' | 'onboardedAt'>;
 
@@ -62,7 +63,7 @@ export default function Onboarding() {
 
       {step === 0 && (
         <Animated.View entering={FadeInRight} style={styles.stepBox}>
-          <Text style={styles.hero}>📸</Text>
+          <View style={styles.heroBox}><Icon name="camera" size={40} color={C.signal} weight={1.5} /></View>
           <Text style={styles.title}>{t('onb.heroTitle')}{'\n'}<Text style={styles.titleAccent}>{t('onb.heroAccent')}</Text></Text>
           <Text style={styles.lead}>{t('onb.lead')}</Text>
           <Card style={{ marginTop: 20 }}>
@@ -244,6 +245,11 @@ function Num({ value, onChange, min, max, decimal }: { value: number; onChange: 
 }
 
 const styles = StyleSheet.create({
+  heroBox: {
+    width: 86, height: 86, borderRadius: 8, borderWidth: 1, borderColor: C.border,
+    alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 22,
+    backgroundColor: C.card,
+  },
   root: { flex: 1, backgroundColor: C.bg },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 24 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.border },

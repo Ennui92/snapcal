@@ -20,6 +20,7 @@ import {
   connectStrava, disconnectStrava, stravaAthlete, stravaConfigured, stravaConnected,
 } from '@/lib/strava';
 import { useStore } from '@/lib/store';
+import { Icon, type IconName } from '@/components/icons';
 
 export default function ConnectionsScreen() {
   const insets = useSafeAreaInsets();
@@ -111,7 +112,7 @@ export default function ConnectionsScreen() {
             value={useTrackedActivity()}
             onValueChange={v => { setUseTrackedActivity(v); refresh(); }}
             trackColor={{ true: C.amber, false: C.border }}
-            thumbColor="#fff"
+            thumbColor={C.ink}
           />
         </View>
         <Text style={styles.hintText}>{t('conn.useTrackedNote')}</Text>
@@ -119,7 +120,7 @@ export default function ConnectionsScreen() {
 
       {/* Strava */}
       <ProviderCard
-        emoji="🏃"
+        icon="bolt"
         name={t('conn.strava')}
         desc={t('conn.stravaDesc')}
         connected={stravaConnected()}
@@ -133,7 +134,7 @@ export default function ConnectionsScreen() {
 
       {/* Google Health Connect */}
       <ProviderCard
-        emoji="❤️"
+        icon="link"
         name={t('conn.hc')}
         desc={t('conn.hcDesc')}
         connected={healthConnectConnected()}
@@ -147,7 +148,7 @@ export default function ConnectionsScreen() {
 
       {/* Apple Health — with the iOS build */}
       <ProviderCard
-        emoji="🍎"
+        icon="sparkle"
         name={t('conn.apple')}
         desc={t('conn.appleDesc')}
         connected={false}
@@ -186,20 +187,20 @@ export default function ConnectionsScreen() {
 }
 
 function ProviderCard({
-  emoji, name, desc, connected, connectedNote, actionDisabled, busy, unavailableNote, comingSoon, onConnect, onDisconnect,
+  icon, name, desc, connected, connectedNote, actionDisabled, busy, unavailableNote, comingSoon, onConnect, onDisconnect,
 }: {
-  emoji: string; name: string; desc: string; connected: boolean; connectedNote: string;
+  icon: IconName; name: string; desc: string; connected: boolean; connectedNote: string;
   actionDisabled: boolean; busy: boolean; unavailableNote: string | null; comingSoon?: boolean;
   onConnect: () => void; onDisconnect: () => void;
 }) {
   return (
     <Card style={{ marginBottom: 12, opacity: comingSoon ? 0.65 : 1 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Text style={{ fontSize: 26, marginRight: 12 }}>{emoji}</Text>
+        <View style={styles.provIcon}><Icon name={icon} size={20} color={C.signal} /></View>
         <View style={{ flex: 1 }}>
           <Text style={styles.providerName}>{name}</Text>
           <Text style={styles.providerDesc}>{desc}</Text>
-          {connected && <Text style={styles.providerStatus}>✓ {connectedNote}</Text>}
+          {connected && <Text style={styles.providerStatus}>{connectedNote}</Text>}
         </View>
         {comingSoon ? (
           <Text style={styles.comingSoon}>{t('conn.comingSoon')}</Text>
@@ -219,6 +220,10 @@ function ProviderCard({
 }
 
 const styles = StyleSheet.create({
+  provIcon: {
+    width: 40, height: 40, borderRadius: 6, borderWidth: 1, borderColor: C.border,
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
   root: { flex: 1, backgroundColor: C.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   headerTitle: { fontFamily: F.heading, fontSize: 20, color: C.ink },
@@ -237,7 +242,7 @@ const styles = StyleSheet.create({
   connectBtn: {
     backgroundColor: C.amber, borderRadius: 10, paddingVertical: 9, paddingHorizontal: 16, marginLeft: 8,
   },
-  connectBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  connectBtnText: { color: C.onSignal, fontWeight: '700', fontSize: 14 },
   ghostBtn: {
     backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
     borderRadius: 10, paddingVertical: 9, paddingHorizontal: 14, marginLeft: 8,

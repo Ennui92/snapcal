@@ -3,7 +3,9 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
+    "@expo-google-fonts/archivo": "^0.4.2",
     "@expo-google-fonts/fraunces": "^0.4.1",
+    "@expo-google-fonts/ibm-plex-mono": "^0.4.1",
     "@expo/ui": "~57.0.6",
     "@react-native-community/slider": "5.2.0",
     "expo": "~57.0.6",

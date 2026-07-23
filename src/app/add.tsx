@@ -10,7 +10,7 @@ import { C, F } from '@/constants/theme';
 import { BigButton, Card, Chip, Section } from '@/components/ui';
 import { insertManualEntry } from '@/lib/db';
 import { t } from '@/lib/i18n';
-import { mealLabel, mealTypeForNow, MEAL_EMOJI } from '@/lib/nutrition';
+import { mealLabel, mealTypeForNow } from '@/lib/nutrition';
 import { useStore } from '@/lib/store';
 
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack', 'drink'] as const;
@@ -124,7 +124,7 @@ export default function AddManualScreen() {
           {MEALS.map(m => (
             <Chip
               key={m}
-              label={`${MEAL_EMOJI[m]} ${mealLabel(m)}`}
+              label={mealLabel(m)}
               selected={mealType === m}
               onPress={() => setMealType(m)}
             />

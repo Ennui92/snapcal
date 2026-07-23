@@ -117,13 +117,7 @@ export function mealTypeForNow(d = new Date()): string {
   return 'snack';
 }
 
-export const MEAL_EMOJI: Record<string, string> = {
-  breakfast: '🌅',
-  lunch: '☀️',
-  dinner: '🌙',
-  snack: '🍎',
-  drink: '☕️',
-};
+// (meal glyphs removed in v0.3: the UI uses drawn icons, not emoji)
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack', 'drink'];
 

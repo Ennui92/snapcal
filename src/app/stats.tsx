@@ -157,5 +157,5 @@ const styles = StyleSheet.create({
     marginTop: 20, backgroundColor: C.amber, borderRadius: radius.button,
     paddingVertical: 16, alignItems: 'center',
   },
-  shareBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  shareBtnText: { color: C.onSignal, fontSize: 16, fontWeight: '700' },
 });

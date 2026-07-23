@@ -8,6 +8,7 @@ import { C, F, radius, shadow } from '@/constants/theme';
 import { BudgetRing } from '@/components/budget-ring';
 import { t } from '@/lib/i18n';
 import { fmtKcal } from '@/lib/nutrition';
+import { Icon } from '@/components/icons';
 
 type Phase = 'shoot' | 'analyzing' | 'result' | 'ring';
 const NEXT: Record<Phase, Phase | null> = { shoot: 'analyzing', analyzing: 'result', result: 'ring', ring: null };
@@ -86,11 +87,11 @@ function CameraMock() {
 
   return (
     <Animated.View entering={FadeIn} style={styles.cameraMock}>
-      <Text style={{ fontSize: 64 }}>🥗</Text>
+      <Icon name="cutlery" size={54} color={C.signal} weight={1.4} />
       <Animated.View style={[styles.mockShutter, pulseStyle]}>
         <View style={styles.mockShutterInner} />
       </Animated.View>
-      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: '#fff', borderRadius: radius.card }, flashStyle]} />
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: C.ink, borderRadius: radius.card }, flashStyle]} />
     </Animated.View>
   );
 }
@@ -98,7 +99,7 @@ function CameraMock() {
 function EntryMock({ done }: { done: boolean }) {
   return (
     <Animated.View entering={FadeInDown.springify()} style={styles.entryMock}>
-      <View style={styles.entryThumb}><Text style={{ fontSize: 26 }}>🥗</Text></View>
+      <View style={styles.entryThumb}><Icon name="cutlery" size={22} color={C.faint} /></View>
       <View style={{ flex: 1, marginHorizontal: 12 }}>
         <Text style={styles.entryTitle} numberOfLines={2}>
           {done ? t('demo.mealName') : t('demo.analyzing')}
@@ -133,10 +134,10 @@ const styles = StyleSheet.create({
   },
   mockShutter: {
     position: 'absolute', bottom: 12, width: 52, height: 52, borderRadius: 26,
-    backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center',
   },
   mockShutterInner: {
-    width: 42, height: 42, borderRadius: 21, backgroundColor: '#fff',
+    width: 42, height: 42, borderRadius: 21, backgroundColor: C.signal,
     borderWidth: 2, borderColor: C.amber,
   },
   entryMock: {
