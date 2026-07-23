@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SnapCal · Point. Shoot. Eat. Calorie counting from one photo</title>
-<meta name="description" content="SnapCal counts your calories from a single photo. Open the app, shoot your meal, go eat. The AI fills in calories in the background and your food diary never leaves your phone.">
+<title>SnapCal · The calorie app that learns your food</title>
+<meta name="description" content="Photograph your meal and keep eating. SnapCal estimates the calories in the background, learns the foods you eat so the numbers stop drifting, and keeps your diary on your phone.">
 <link rel="canonical" href="https://ennui92.github.io/snapcal/">
-<meta name="theme-color" content="#faf8f4">
+<meta name="theme-color" content="#08080A">
 
 <meta property="og:type" content="website">
-<meta property="og:title" content="SnapCal · Point. Shoot. Eat.">
-<meta property="og:description" content="Calorie counting from one photo. Zero typing, on-device diary, gentle nudges.">
+<meta property="og:title" content="SnapCal · The calorie app that learns your food">
+<meta property="og:description" content="Photo in, calories out. It learns what you eat, so logging gets faster every week. Nothing leaves your phone.">
 <meta property="og:image" content="https://ennui92.github.io/snapcal/assets/icon.png">
 <meta property="og:url" content="https://ennui92.github.io/snapcal/">
 <meta name="twitter:card" content="summary">
@@ -18,7 +18,7 @@
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,600;0,700;0,800;1,600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 
 <script type="application/ld+json">
 {
@@ -27,145 +27,211 @@
   "name": "SnapCal",
   "operatingSystem": "Android",
   "applicationCategory": "HealthApplication",
-  "description": "Calorie tracking from a single photo. The camera opens, you shoot, the AI estimates the calories in the background. The food diary stays on the device.",
+  "description": "Calorie tracking from a single photo. The camera opens, you shoot, the AI estimates the calories in the background. It remembers the foods you eat and the diary stays on the device.",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
   "author": { "@type": "Person", "name": "Ermis Zacharopoulos", "url": "https://ermis.dev" }
 }
 </script>
 
 <style>
-:root {
-  --bg: #faf8f4;
-  --card: #ffffff;
-  --border: #e6e3dc;
-  --ink: #2f2a24;
-  --muted: #6f6a60;
-  --amber: #d97706;
-  --amber-soft: #fdf0e0;
-  --green: #5f7d54;
+:root{
+  --bg:#08080A; --card:#131317; --raised:#1C1C21; --line:#26262D;
+  --ink:#F7F7F4; --muted:#9695A0; --faint:#5C5B66;
+  --signal:#C8FA3C; --ember:#FF8A1F; --danger:#FF4438;
 }
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: var(--bg);
-  background-image: radial-gradient(1200px 500px at 50% -10%, #fdf0e0 0%, rgba(253,240,224,0) 70%);
-  color: var(--ink);
-  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg); color:var(--ink);
+  font:16.5px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased; overflow-x:hidden; position:relative;
 }
-.wrap { max-width: 720px; margin: 0 auto; padding: 0 22px; }
-h1, h2, h3 { font-family: "Fraunces", Georgia, serif; font-weight: 600; line-height: 1.15; }
-em, .accent { font-family: "Fraunces", Georgia, serif; font-style: italic; color: var(--amber); }
-
-.hero { padding: 72px 0 40px; text-align: center; }
-.hero img.icon { width: 96px; height: 96px; border-radius: 24px; box-shadow: 0 8px 30px rgba(28,24,19,.12); margin-bottom: 24px; }
-.hero h1 { font-size: clamp(38px, 7vw, 56px); margin-bottom: 14px; }
-.hero p.lead { font-size: 20px; color: var(--muted); max-width: 540px; margin: 0 auto 30px; }
-.kicker {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: var(--card); border: 1px solid var(--border); border-radius: 999px;
-  padding: 6px 14px; font-size: 13px; color: var(--muted); margin-bottom: 20px;
+/* film grain, same trick the app uses */
+body::before{
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 .6 0 0 0 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-.kicker .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+main,header,footer{position:relative;z-index:1}
+.wrap{max-width:760px;margin:0 auto;padding:0 22px}
 
-.btn {
-  display: inline-block; text-decoration: none; border-radius: 14px;
-  padding: 14px 26px; font-weight: 700; font-size: 16px;
+h1,h2,h3{font-family:"Archivo",sans-serif;font-weight:800;letter-spacing:-.03em;line-height:1.08}
+.mono{font-family:"IBM Plex Mono",monospace}
+.tag{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--faint);
 }
-.btn-primary { background: var(--amber); color: #fff; box-shadow: 0 6px 18px rgba(217,119,6,.28); }
-.btn-primary:hover { filter: brightness(1.06); }
-.btn-ghost { background: var(--card); color: var(--ink); border: 1px solid var(--border); margin-left: 8px; }
-.hero-note { font-size: 13px; color: var(--muted); margin-top: 14px; }
 
-.how { padding: 26px 0 8px; }
-.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
-@media (max-width: 620px) { .steps { grid-template-columns: 1fr; } }
-.step {
-  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
-  padding: 22px 18px; text-align: center;
-  box-shadow: 0 4px 12px rgba(28,24,19,.05);
+/* hero */
+.hero{padding:64px 0 46px;text-align:center}
+.hero .icon{width:74px;height:74px;border-radius:14px;border:1px solid var(--line);margin-bottom:26px}
+.kicker{
+  display:inline-flex;align-items:center;gap:9px;border:1px solid var(--line);
+  border-radius:6px;padding:7px 13px;margin-bottom:24px;
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);
 }
-.step .big { font-size: 34px; display: block; margin-bottom: 10px; }
-.step b { display: block; margin-bottom: 6px; font-size: 16px; }
-.step span { font-size: 14px; color: var(--muted); }
-
-section.block { padding: 38px 0 6px; }
-section.block h2 { font-size: 30px; margin-bottom: 8px; }
-section.block > .wrap > p { color: var(--muted); max-width: 620px; }
-
-.features { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 22px; }
-@media (max-width: 620px) { .features { grid-template-columns: 1fr; } }
-.feature {
-  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
-  padding: 20px; box-shadow: 0 4px 12px rgba(28,24,19,.05);
+.kicker i{width:6px;height:6px;border-radius:50%;background:var(--signal);display:block}
+.hero h1{font-size:clamp(40px,8vw,64px);margin-bottom:18px}
+.hero h1 em{font-style:italic;font-weight:600;color:var(--signal)}
+.lead{font-size:19px;color:var(--muted);max-width:560px;margin:0 auto 32px}
+.ctas{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn{
+  display:inline-flex;align-items:center;gap:9px;text-decoration:none;border-radius:8px;
+  padding:15px 24px;font-family:"IBM Plex Mono",monospace;font-size:12.5px;
+  letter-spacing:.11em;text-transform:uppercase;font-weight:600;
 }
-.feature .emoji { font-size: 24px; }
-.feature b { display: block; margin: 8px 0 4px; font-size: 16px; }
-.feature p { font-size: 14.5px; color: var(--muted); }
+.btn-primary{background:var(--signal);color:#0A0A0B}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-ghost{border:1px solid var(--line);color:var(--ink)}
+.btn-ghost:hover{background:var(--raised)}
+.note{font-size:13px;color:var(--faint);margin-top:18px}
 
-.privacy {
-  margin-top: 42px; background: var(--amber-soft); border: 1px solid #f3ddc0;
-  border-radius: 14px; padding: 26px;
-}
-.privacy h2 { font-size: 24px; margin-bottom: 8px; }
-.privacy p { color: #7a5a33; font-size: 15.5px; }
+/* the claim strip */
+.strip{border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:52px}
+.strip .wrap{display:grid;grid-template-columns:repeat(3,1fr)}
+.stat{padding:26px 16px;text-align:center;border-right:1px solid var(--line)}
+.stat:last-child{border-right:0}
+.stat b{display:block;font-family:"IBM Plex Mono",monospace;font-size:26px;color:var(--signal);letter-spacing:-.02em}
+.stat span{display:block;margin-top:7px;font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+@media(max-width:560px){.strip .wrap{grid-template-columns:1fr}.stat{border-right:0;border-bottom:1px solid var(--line)}.stat:last-child{border-bottom:0}}
 
-.download { text-align: center; padding: 52px 0 30px; }
-.download h2 { font-size: 32px; margin-bottom: 10px; }
-.download p { color: var(--muted); margin-bottom: 24px; }
+section{padding:56px 0 0}
+section h2{font-size:clamp(28px,5vw,38px);margin-bottom:14px}
+section h2 em{font-style:italic;font-weight:600;color:var(--signal)}
+section .sub{color:var(--muted);max-width:620px;margin-bottom:30px}
 
-footer { border-top: 1px solid var(--border); margin-top: 50px; padding: 28px 0 44px; }
-footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 14px; color: var(--muted); }
-footer a { color: var(--amber); text-decoration: none; }
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+@media(max-width:660px){.steps{grid-template-columns:1fr}}
+.step{background:var(--bg);padding:26px 20px}
+.step .n{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.16em;color:var(--signal)}
+.step b{display:block;margin:12px 0 7px;font-family:"Archivo",sans-serif;font-weight:700;font-size:17px;letter-spacing:-.02em}
+.step p{font-size:14.5px;color:var(--muted)}
+
+/* features */
+.features{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:660px){.features{grid-template-columns:1fr}}
+.feature{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:22px}
+.feature b{display:block;font-family:"Archivo",sans-serif;font-weight:700;font-size:16.5px;margin-bottom:7px;letter-spacing:-.02em}
+.feature p{font-size:14.5px;color:var(--muted)}
+.feature .lbl{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--signal);display:block;margin-bottom:11px}
+
+/* privacy */
+.privacy{margin-top:40px;border:1px solid var(--line);border-left:3px solid var(--signal);border-radius:8px;padding:28px;background:var(--card)}
+.privacy h2{font-size:26px;margin-bottom:10px}
+.privacy p{color:var(--muted);font-size:15.5px}
+
+/* download */
+.download{text-align:center;padding:70px 0 40px}
+.download h2{margin-bottom:12px}
+.download p{color:var(--muted);margin-bottom:28px}
+
+footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 0 50px}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+footer a{color:var(--signal);text-decoration:none}
 </style>
 </head>
 <body>
 
 <header class="hero">
   <div class="wrap">
-    <img class="icon" src="assets/icon.png" alt="SnapCal icon" width="96" height="96">
-    <div><span class="kicker"><span class="dot"></span> Android · free · your data stays yours</span></div>
-    <h1>Point. Shoot. <em>Eat.</em></h1>
+    <img class="icon" src="assets/icon.png" alt="SnapCal" width="74" height="74">
+    <div><span class="kicker"><i></i> Android · free · nothing leaves your phone</span></div>
+    <h1>It learns<br>your <em>food.</em></h1>
     <p class="lead">
-      SnapCal counts your calories from a single photo. No searching, no barcode scanning,
-      no typing grams into little boxes. Log a meal in the time it takes to photograph it.
+      Photograph your meal and go eat it. SnapCal works out the calories in the
+      background, and remembers what you eat, so the numbers stop drifting and
+      logging gets faster every week.
     </p>
-    <a class="btn btn-primary" href="https://github.com/Ennui92/snapcal/releases/download/android-latest/snapcal.apk">Download APK ↓</a>
-    <a class="btn btn-ghost" href="https://github.com/Ennui92/snapcal">Source</a>
-    <p class="hero-note">Android now, iOS when it earns it. Install by opening the APK on your phone.</p>
+    <div class="ctas">
+      <a class="btn btn-primary" href="https://github.com/Ennui92/snapcal/releases/download/android-latest/snapcal.apk">Download APK ↓</a>
+      <a class="btn btn-ghost" href="https://github.com/Ennui92/snapcal">Source</a>
+    </div>
+    <p class="note">Android now, iOS next. Open the file on your phone to install.</p>
   </div>
 </header>
 
-<section class="how">
+<div class="strip">
   <div class="wrap">
+    <div class="stat"><b>1</b><span>tap to log a meal</span></div>
+    <div class="stat"><b>0</b><span>accounts required</span></div>
+    <div class="stat"><b>5</b><span>languages</span></div>
+  </div>
+</div>
+
+<main>
+<section>
+  <div class="wrap">
+    <h2>Three seconds, <em>then eat.</em></h2>
+    <p class="sub">The app opens straight into the camera. There is no home screen to get through, no search box, no serving-size dropdown.</p>
     <div class="steps">
-      <div class="step"><span class="big">📸</span><b>Open, tap once</b><span>The app opens straight into the camera. One tap logs the meal, then go eat it.</span></div>
-      <div class="step"><span class="big">🤖</span><b>AI does the counting</b><span>In the background, Gemini vision names the food, sizes the portions and adds up the calories.</span></div>
-      <div class="step"><span class="big">🎯</span><b>You see the line</b><span>A daily budget from your one-time setup. Under it, weight comes off. The ring keeps the score.</span></div>
+      <div class="step">
+        <span class="n">01</span>
+        <b>Open and shoot</b>
+        <p>The camera is the app. One tap logs the meal with the right time, day and meal type. Then put the phone down.</p>
+      </div>
+      <div class="step">
+        <span class="n">02</span>
+        <b>It thinks while you chew</b>
+        <p>Analysis happens in the background. If you close the app or lose signal it picks the job back up later.</p>
+      </div>
+      <div class="step">
+        <span class="n">03</span>
+        <b>The line is the point</b>
+        <p>One number: what is left today. Under the line is where weight comes off, and the meter shows it at a glance.</p>
+      </div>
     </div>
   </div>
 </section>
 
-<section class="block">
+<section>
   <div class="wrap">
-    <h2>Built for <em>zero</em> effort</h2>
-    <p>Every calorie app dies of too much typing. SnapCal's whole design is making the log entry cost nothing, so you actually keep doing it.</p>
+    <h2>Where other photo apps <em>get it wrong</em></h2>
+    <p class="sub">
+      Guessing calories from a flat photo is mostly a guess about <em>portion size</em>,
+      and that is where these apps miss badly. SnapCal fixes it with two things
+      nobody else does.
+    </p>
     <div class="features">
-      <div class="feature"><span class="emoji">🖐️</span><b>Your hand is the ruler</b><p>Put your hand next to the plate and the AI uses it for scale. Calibrated once during setup with your palm-to-fingertip length.</p></div>
-      <div class="feature"><span class="emoji">📦</span><b>Remembers your products</b><p>That chocolate bar, that soda can: recognized once, stored on your phone, reused instantly. People eat the same things, so repeat logging is consistent and fast.</p></div>
-      <div class="feature"><span class="emoji">🎚️</span><b>"I only ate half"</b><p>A big slider adjusts any entry to 0 to 100% eaten in two seconds. Items can be tweaked, removed or added if the AI missed something.</p></div>
-      <div class="feature"><span class="emoji">💬</span><b>Gentle nudges</b><p>If the day is running hot by noon, SnapCal quietly suggests a lighter dinner. You pick how firm it should be, from off to strict.</p></div>
-      <div class="feature"><span class="emoji">☕️</span><b>Everything counts</b><p>Meals, snacks, coffee, juice, that beer. Anything you can photograph, it can estimate, calories and sugar included. No photo? Type it in, in two fields.</p></div>
-      <div class="feature"><span class="emoji">📈</span><b>Honest history</b><p>Days on budget, net calorie balance and the estimated effect on your weight, shared as text whenever you feel like bragging.</p></div>
-      <div class="feature"><span class="emoji">🏃</span><b>Move more, eat more</b><p>Connect Strava or Google Health Connect and tracked workouts raise the day's budget. A morning run earns its lunch.</p></div>
-      <div class="feature"><span class="emoji">🌍</span><b>Five languages</b><p>English, Ελληνικά, Deutsch, Español, Français. The AI answers in your language too, down to the food names.</p></div>
+      <div class="feature">
+        <span class="lbl">Scale</span>
+        <b>Your hand is the ruler</b>
+        <p>Measure your palm to fingertip once during setup. Put your hand in the shot and the AI has a known measurement to size the plate against, instead of guessing from nothing.</p>
+      </div>
+      <div class="feature">
+        <span class="lbl">Memory</span>
+        <b>The same food, the same number</b>
+        <p>Recognise that chocolate bar or soda can once and it is saved on your phone. Next time it is reused instantly, so your usual lunch does not cost different calories on Tuesday than it did on Monday.</p>
+      </div>
+      <div class="feature">
+        <span class="lbl">Correction</span>
+        <b>"I only ate half"</b>
+        <p>One big slider takes any entry from 0 to 100% eaten. Items can be edited, removed, or added if the AI missed the olive oil.</p>
+      </div>
+      <div class="feature">
+        <span class="lbl">Honesty</span>
+        <b>A budget with the maths shown</b>
+        <p>Your daily line comes from your own BMR and goal, worked out once at setup. Connect Strava or Health Connect and a hard workout raises the line for that day.</p>
+      </div>
+      <div class="feature">
+        <span class="lbl">Restraint</span>
+        <b>Nudges, not nagging</b>
+        <p>If a day is running hot by noon it quietly suggests a lighter dinner. Once. You choose how firm it gets, including off.</p>
+      </div>
+      <div class="feature">
+        <span class="lbl">Everything</span>
+        <b>Food, drinks, the lot</b>
+        <p>Coffee, juice, a beer, a full tray. Anything you can photograph it will estimate, in English, Ελληνικά, Deutsch, Español or Français.</p>
+      </div>
     </div>
 
     <div class="privacy">
-      <h2>Your food diary is <em>nobody's</em> business</h2>
+      <h2>Your food diary is <em>nobody's business</em></h2>
       <p>
-        SnapCal has no account, no cloud database and no analytics. Your entire history lives in a
-        database on your phone; export it as JSON any time. Photos are sent once for AI analysis
-        and stored nowhere else. We could not sell your data even if we wanted to. We do not have it.
+        No account. No cloud database. No analytics. Your entire history lives in
+        a database on your phone and you can export the whole thing as JSON
+        whenever you like. Photos go out once to be analysed and are stored
+        nowhere else. We could not sell your data if we wanted to. We do not have it.
       </p>
     </div>
   </div>
@@ -173,16 +239,19 @@ footer a { color: var(--amber); text-decoration: none; }
 
 <section class="download">
   <div class="wrap">
-    <h2>Try it on your <em>next</em> meal</h2>
-    <p>Free. Installs in seconds. Setup is four friendly questions, then you never fill a form again.</p>
-    <a class="btn btn-primary" href="https://github.com/Ennui92/snapcal/releases/download/android-latest/snapcal.apk">Download SnapCal for Android ↓</a>
+    <h2>Try it on your <em>next meal</em></h2>
+    <p>Free. Setup is four questions, then you never fill in a form again.</p>
+    <div class="ctas">
+      <a class="btn btn-primary" href="https://github.com/Ennui92/snapcal/releases/download/android-latest/snapcal.apk">Download for Android ↓</a>
+    </div>
   </div>
 </section>
+</main>
 
 <footer>
   <div class="wrap">
-    <span>Made by <a href="https://ermis.dev">Ermis</a> in Berlin</span>
-    <span><a href="https://github.com/Ennui92/snapcal">GitHub</a> · <a href="https://ennui92.github.io/eortes-site/">Eortes</a> · <a href="https://ermis.dev">more projects</a></span>
+    <span>Built by <a href="https://ermis.dev">Ermis</a> in Berlin</span>
+    <span><a href="https://github.com/Ennui92/snapcal">GitHub</a> · <a href="https://ennui92.github.io/eortes-site/">Eortes</a></span>
   </div>
 </footer>
 
