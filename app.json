@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "dev.ermis.snapcal",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "backgroundColor": "#faf8f4",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -38,6 +38,7 @@
       "expo-router",
       "expo-sqlite",
       "./plugins/health-connect",
+      "./plugins/abi-filter",
       [
         "expo-build-properties",
         {
