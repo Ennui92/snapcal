@@ -37,7 +37,14 @@ Diary, and the **freemium split** (premium.ts reverse-trial gating, /plus
 paywall, settings plan card, a real free-tier scan limit on the camera).
 Deferred to v0.5.0: see the "next" list below.
 
-### v0.4.0+ — feature wave part 2 (queued for v0.5.0)
+### v0.5.0 — light & dark themes (2026-07-24, shipped)
+Full light theme alongside the dark default, switchable in Settings >
+Appearance (Dark / Light / System, persisted). New palette system
+(DARK/LIGHT + Palette type), ThemeProvider + useColors()/useThemeMode(), and
+every screen migrated to the `makeStyles(C)` pattern (camera stays dark on
+purpose). Light uses a deep-green accent (lime is unreadable on white).
+
+### v0.4.0+ — feature wave part 2 (queued)
 Big feature push requested from competitor-app reference shots (Cal AI coach,
 SnapCalorie photo journal, MyFitnessPal voice logging). Sequenced by conflict
 surface, since this is a single RN app where theme/nav/db/locales are shared:
