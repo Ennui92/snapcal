@@ -7,6 +7,8 @@ import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C, F } from '@/constants/theme';
 import { BigButton, Card, Chip, Section } from '@/components/ui';
+import { TabBar } from '@/components/tab-bar';
+import { isPremium, trialDaysLeft } from '@/lib/premium';
 import { anyProviderConnected, connectedProviderNames } from '@/lib/activity';
 import { exportAllData, logWeight, saveProfile, setMeta, type Profile } from '@/lib/db';
 import { getLanguage, LANGS, setLanguage, t } from '@/lib/i18n';
@@ -58,12 +60,34 @@ export default function SettingsScreen() {
   const preview = recalc(p);
   const b = bmi(p.heightCm, p.weightKg);
 
+  const plus = isPremium();
+  const daysLeft = trialDaysLeft();
+
   return (
-    <ScrollView style={styles.root} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 40, paddingHorizontal: 16 }}>
+    <View style={styles.root}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 40, paddingHorizontal: 16 }}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.headerBtn}><Text style={{ fontSize: 16 }}>‹</Text></Pressable>
         <Text style={styles.headerTitle}>{t('set.title')}</Text>
         <View style={{ width: 42 }} />
+      </View>
+
+      <View style={styles.planCard}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.planName}>{plus ? 'SnapCal Plus' : 'SnapCal Free'}</Text>
+          <Text style={styles.planNote}>
+            {plus && daysLeft > 0
+              ? `Free trial: ${daysLeft} day${daysLeft === 1 ? '' : 's'} left`
+              : plus
+                ? 'Unlimited scans, coach, recipes and more'
+                : '3 AI scans a day. Reused foods are always free.'}
+          </Text>
+        </View>
+        {!plus && (
+          <Pressable style={styles.planBtn} onPress={() => router.push('/plus')}>
+            <Text style={styles.planBtnText}>Go Plus</Text>
+          </Pressable>
+        )}
       </View>
 
       <Section title={t('set.language')}>
@@ -186,6 +210,8 @@ export default function SettingsScreen() {
 
       <BigButton label={t('set.save')} onPress={save} style={{ marginTop: 8 }} />
     </ScrollView>
+    <TabBar />
+    </View>
   );
 }
 
@@ -239,4 +265,13 @@ const styles = StyleSheet.create({
   budgetPreview: { fontFamily: F.heading, fontSize: 20, color: C.ink },
   budgetSub: { fontSize: 13, color: C.muted, marginTop: 4, lineHeight: 19 },
   hintText: { fontSize: 13, color: C.muted, lineHeight: 19, marginBottom: 10 },
+  planCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.signal, borderRadius: 8,
+    padding: 16, marginBottom: 24,
+  },
+  planName: { fontFamily: F.heading, fontSize: 17, color: C.ink, letterSpacing: -0.3 },
+  planNote: { fontSize: 12.5, color: C.muted, marginTop: 3, lineHeight: 17 },
+  planBtn: { backgroundColor: C.signal, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16 },
+  planBtnText: { fontFamily: F.mono, fontSize: 12, letterSpacing: 1, color: C.onSignal, textTransform: 'uppercase' },
 });

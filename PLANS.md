@@ -27,6 +27,30 @@ number, a hand-drawn icon set replacing all emoji, the budget ring rebuilt as a
 270° instrument arc with tick marks, log rows as a contact sheet, viewfinder
 brackets on the camera, and a film-grain overlay.
 
+### v0.4.0+ — feature wave (in progress, 2026-07-24)
+Big feature push requested from competitor-app reference shots (Cal AI coach,
+SnapCalorie photo journal, MyFitnessPal voice logging). Sequenced by conflict
+surface, since this is a single RN app where theme/nav/db/locales are shared:
+
+- **Foundation (done by hand, one coherent pass):** light + dark themes with a
+  toggle; easier home navigation (persistent bottom tab bar); premium-gating
+  module + paywall; a consolidated DB migration.
+- **Independent leaf features (parallel subagents, new files only):** AI coach
+  chat (`/coach`), barcode scanning (`/scan`), recipe/next-meal suggestions
+  (`/recipes`), intermittent fasting mode (`/fasting`). Each owns its own
+  screen + lib + (where needed) its own SQLite table; the orchestrator wires
+  routes, nav entries, and premium gating.
+- **Orchestrator-owned features:** upload-a-photo-later; diary vs photo-diary
+  view modes; Oura ring (rides in through Google Health Connect — verify +
+  label, likely no new integration); better stats (weight-trend chart, streak,
+  macro breakdowns); voice logging (record → Gemini transcription → entry;
+  needs a native audio module so it is managed centrally); social feed of
+  day/meal posts (needs a backend → Firebase, largest item, scoped last).
+- **Freemium / premium split:** free = 3 AI scans/day + unlimited reuse of
+  learned foods + core logging + last 7 days; premium = unlimited scans, coach
+  chat, recipes, barcode, voice, full history + weight trend, fasting insights,
+  fitness sync, social, themes. Reverse-trial model per docs/GTM.md.
+
 ## Next, in order
 
 Sequenced by what blocks revenue, per GTM section 2. The first four are hard

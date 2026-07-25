@@ -321,6 +321,15 @@ export function consumedForDay(dayKey: string): number {
   return Math.round(row?.total ?? 0);
 }
 
+// AI photo scans used on a day = entries that carry a photo (manual/barcode
+// entries have photoUri NULL and are always free). Used by the free-tier meter.
+export function countScansForDay(dayKey: string): number {
+  const row = db.getFirstSync<{ n: number }>(
+    'SELECT COUNT(*) n FROM entries WHERE dayKey=? AND photoUri IS NOT NULL', dayKey,
+  );
+  return row?.n ?? 0;
+}
+
 export type DaySummary = { dayKey: string; consumed: number; entries: number };
 
 export function daySummaries(fromDayKey: string, toDayKey: string): DaySummary[] {

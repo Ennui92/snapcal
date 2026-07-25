@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { Redirect, router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useRef, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -19,6 +19,7 @@ import { consumedForDay, dayKeyFor, getEntriesForDay, getMeta, insertEntry, setM
 import { t } from '@/lib/i18n';
 import { fmtKcal, mealTypeForNow } from '@/lib/nutrition';
 import { useStore } from '@/lib/store';
+import { scansRemainingToday } from '@/lib/premium';
 
 const PHOTOS_DIR = FileSystem.documentDirectory + 'photos/';
 
@@ -101,6 +102,20 @@ export default function CameraScreen() {
 
   const onShutter = async () => {
     if (busy || !cameraRef.current) return;
+    // Free tier: 3 AI photo scans a day. Reusing a food you already scanned,
+    // barcodes and manual entries stay free, so offer those instead of a wall.
+    if (scansRemainingToday() <= 0) {
+      Alert.alert(
+        'Daily scans used up',
+        'Free plan includes 3 AI photo scans a day. Scan a barcode or add a meal manually (both free and unlimited), or go Plus for unlimited photo scans.',
+        [
+          { text: 'Add manually', onPress: () => router.push('/add') },
+          { text: 'Go Plus', onPress: () => router.push('/plus') },
+          { text: 'Not now', style: 'cancel' },
+        ],
+      );
+      return;
+    }
     setBusy(true);
     shutterScale.value = withSequence(
       withTiming(0.85, { duration: 80, easing: Easing.out(Easing.quad) }),

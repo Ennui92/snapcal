@@ -8,6 +8,7 @@ import { BudgetRing } from '@/components/budget-ring';
 import { EntryCard } from '@/components/entry-card';
 import { Icon, type IconName } from '@/components/icons';
 import { Grain, IconButton } from '@/components/ui';
+import { TabBar } from '@/components/tab-bar';
 import { budgetForDay, burnedForRange } from '@/lib/activity';
 import { retryPending } from '@/lib/analyzer';
 import { consumedForDay, dayKeyFor, daySummaries, getEntriesForDay, getProfile, type Profile, type Entry } from '@/lib/db';
@@ -125,8 +126,10 @@ export default function TodayScreen() {
                 </Text>
               </View>
             )}
-            <View style={styles.tabs}>
-              <Tab icon="chart" text={t('today.history')} onPress={() => router.push('/stats')} />
+            <View style={styles.actions}>
+              <Tab icon="scale" text="Scan" onPress={() => router.push('/scan')} />
+              <Tab icon="sparkle" text="Recipes" onPress={() => router.push('/recipes')} />
+              <Tab icon="clock" text="Fast" onPress={() => router.push('/fasting')} />
               <Tab icon="plus" text={t('today.addManual')} onPress={() => router.push('/add')} />
             </View>
           </View>
@@ -144,6 +147,7 @@ export default function TodayScreen() {
           <EntryCard entry={item} index={index} onPress={() => router.push(`/entry/${item.id}`)} />
         )}
       />
+      <TabBar />
     </View>
   );
 }
@@ -164,10 +168,11 @@ const styles = StyleSheet.create({
   },
   streakText: { ...label, fontSize: 9.5, color: C.ink },
   tabs: { flexDirection: 'row', marginTop: 18, gap: 8 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 18, gap: 8 },
   tab: {
     flexDirection: 'row', alignItems: 'center', gap: 7,
     borderWidth: 1, borderColor: C.border, borderRadius: radius.button,
-    paddingVertical: 11, paddingHorizontal: 16,
+    paddingVertical: 11, paddingHorizontal: 14,
   },
   tabText: { ...label, fontSize: 9.5, color: C.ink },
   empty: { alignItems: 'center', paddingVertical: 34 },

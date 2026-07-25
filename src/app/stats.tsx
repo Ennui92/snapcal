@@ -7,6 +7,7 @@ import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C, F, radius } from '@/constants/theme';
 import { Card, Chip } from '@/components/ui';
+import { TabBar } from '@/components/tab-bar';
 import { burnedForRange } from '@/lib/activity';
 import { dayKeyFor, daySummaries, getProfile } from '@/lib/db';
 import { t } from '@/lib/i18n';
@@ -70,7 +71,8 @@ export default function StatsScreen() {
   };
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 32, paddingHorizontal: 16 }}>
+    <View style={styles.root}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 24, paddingHorizontal: 16 }}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.headerBtn}>
           <Text style={{ fontSize: 16 }}>‹</Text>
@@ -129,6 +131,8 @@ export default function StatsScreen() {
         <Text style={styles.shareBtnText}>{range === 7 ? t('stats.shareWeek') : t('stats.shareMonth')}</Text>
       </Pressable>
     </ScrollView>
+    <TabBar />
+    </View>
   );
 }
 
