@@ -9,7 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { retryPending } from '@/lib/analyzer';
-import { initFoodDb, refreshCatalog } from '@/lib/food-db';
+import { initFoodDb, refreshCatalog, syncCountryCatalogue } from '@/lib/food-db';
 import { initDb } from '@/lib/db';
 import { initLanguage } from '@/lib/i18n';
 import { StoreProvider } from '@/lib/store';
@@ -44,8 +44,11 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
       // Anything that never finished analyzing gets another shot on launch.
       retryPending();
-      // Re-seed the local product catalogue if the bundled data moved on.
+      // Re-seed the local product catalogue if the bundled data moved on, then
+      // pull a few more pages of this country's products in the background so
+      // the on-device database keeps growing wherever the user lives.
       refreshCatalog();
+      void syncCountryCatalogue().catch(() => {});
     }
   }, [fontsLoaded]);
 

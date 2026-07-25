@@ -19,7 +19,7 @@ Every calorie app dies the same death: too much typing. Search the food, pick th
 - Daily budget from your BMI/BMR and goal, computed once at setup: stay under the line and weight comes off
 - Gentle nudges if a day runs hot ("maybe a yogurt tonight"), strictness is yours to pick
 - **Voice logging**: say "a Greek yogurt with honey and some grapes" and it is logged, portions estimated
-- **Barcode scanning that works outside the US/UK**: a cascade of your own catalogue → a bundled seed catalogue for your country (Greek supermarket products included) → country-aware Open Food Facts → an AI fallback that reads the nutrition label off a photo. Every answer is written back to the on-device catalogue, so it gets faster and works offline
+- **Barcode scanning that works outside the US/UK**: a cascade of your own catalogue → a bundled catalogue of ~17,000 real products (every Greek product in Open Food Facts that has nutrition data, plus the 15,000 most-scanned products worldwide) → country-aware Open Food Facts → an AI fallback that reads the nutrition label off a photo. Every answer is written back to the on-device catalogue, so it gets faster and works offline
 - **Calories in vs out**: connected fitness (Strava / Health Connect / Oura) charted against intake, with steps and the running net
 - **Photo journal**: your meals as a big, by-the-day visual diary, plus a list mode
 - **Fasting timer** on the dashboard: presets, live countdown, history

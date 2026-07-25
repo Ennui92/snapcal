@@ -19,6 +19,15 @@ import * as SQLite from 'expo-sqlite';
 import { GEMINI_API_KEY, GEMINI_BASE, MODEL_FALLBACK, MODEL_PRIMARY } from '@/lib/config';
 import { getLanguage, LANG_NAME_EN } from '@/lib/i18n';
 import { SEED_PRODUCTS, type SeedProduct } from '@/data/seed-products';
+import CATALOGUE_GR from '@/data/catalogue-gr.json';
+import CATALOGUE_CY from '@/data/catalogue-cy.json';
+import CATALOGUE_GLOBAL from '@/data/catalogue-global.json';
+
+// Compact bulk row: [barcode, name, brand, kcal, protein, carbs, fat, sugar]
+// per 100g. Stored as arrays rather than objects to keep the bundled JSON
+// small and the parse cheap.
+type BulkRow = [string, string, string, number, number, number, number, number];
+const BULK_CHUNK = 400;
 
 export type CatalogRow = {
   id: number;
@@ -65,7 +74,7 @@ const db = SQLite.openDatabaseSync('snapcal.db');
 
 // Bump this whenever SEED_PRODUCTS changes meaningfully; refreshCatalog()
 // re-seeds when the stored version doesn't match.
-const SEED_VERSION = '1';
+const SEED_VERSION = '2';
 
 let initialized = false;
 
@@ -114,12 +123,59 @@ function setCatalogMeta(key: string, value: string) {
  */
 export function refreshCatalog() {
   if (getCatalogMeta('seed_version') === SEED_VERSION) return;
+
+  // The curated list is tiny, so it lands immediately.
   db.withTransactionSync(() => {
     for (const p of SEED_PRODUCTS) {
       seedOne(p);
     }
   });
-  setCatalogMeta('seed_version', SEED_VERSION);
+
+  // The bulk catalogues are ~17k rows. Inserting those synchronously would
+  // stall the very first launch after an update, so they go in just after the
+  // first frame. The version marker is only written once the bulk finishes, so
+  // an app killed mid-seed simply picks it up again next launch.
+  if (bulkSeedScheduled) return;
+  bulkSeedScheduled = true;
+  setTimeout(() => {
+    try {
+      db.withTransactionSync(() => {
+        seedBulk();
+        // Curated entries win over bulk rows, so re-apply them on top.
+        for (const p of SEED_PRODUCTS) seedOne(p);
+      });
+      setCatalogMeta('seed_version', SEED_VERSION);
+    } catch {
+      // Leave the version unset so the next launch retries.
+    } finally {
+      bulkSeedScheduled = false;
+    }
+  }, 0);
+}
+
+let bulkSeedScheduled = false;
+
+/**
+ * Load the bundled bulk catalogues: this device's country (where we ship one)
+ * plus the globally most-scanned products, which is what people actually put
+ * in front of a scanner regardless of where they live.
+ */
+function seedBulk() {
+  const region = deviceRegion();
+  const packs: BulkRow[][] = [];
+  if (region === 'GR') packs.push(CATALOGUE_GR as BulkRow[]);
+  if (region === 'CY') packs.push(CATALOGUE_CY as BulkRow[]);
+  // Greek-speaking markets get both; everyone gets the global staples.
+  if (region === 'GR') packs.push(CATALOGUE_CY as BulkRow[]);
+  packs.push(CATALOGUE_GLOBAL as BulkRow[]);
+
+  const country = region ?? 'XX';
+  for (const pack of packs) {
+    // Insert in chunks: one statement per chunk is far cheaper than one per row.
+    for (let i = 0; i < pack.length; i += BULK_CHUNK) {
+      insertBulk(pack.slice(i, i + BULK_CHUNK), country);
+    }
+  }
 }
 
 function seedOne(p: SeedProduct) {
@@ -477,6 +533,137 @@ export async function identifyProductByPhoto(base64Jpeg: string, barcode?: strin
   } catch {
     return null;
   }
+}
+
+// ── Per-country catalogue sync ────────────────────────────────────────────
+// The bundled seed covers Greece offline from day one. For every other market
+// we cannot ship a catalogue in the APK (Germany alone is ~418k products), so
+// instead each install slowly pulls its OWN country's catalogue from Open Food
+// Facts in the background and keeps it on the device. A few pages per launch,
+// resumable, so it costs almost nothing and converges over a week of use.
+//
+// This is what makes barcode scanning fast and offline wherever the user is,
+// not just in Greece.
+
+const SYNC_PAGE_SIZE = 100;
+const PAGES_PER_LAUNCH = 3;
+const SYNC_FIELDS = 'code,product_name,product_name_el,brands,nutriments';
+
+/** ISO region for the OFF `countries_tags_en` filter, e.g. 'GR' -> 'greece'. */
+const COUNTRY_SLUGS: Record<string, string> = {
+  GR: 'greece', DE: 'germany', FR: 'france', ES: 'spain', IT: 'italy',
+  GB: 'united-kingdom', US: 'united-states', NL: 'netherlands', BE: 'belgium',
+  AT: 'austria', CH: 'switzerland', PT: 'portugal', SE: 'sweden', PL: 'poland',
+  CY: 'cyprus', IE: 'ireland', DK: 'denmark', NO: 'norway', FI: 'finland',
+};
+
+function deviceRegion(): string | null {
+  try {
+    const r = getLocales()?.[0]?.regionCode;
+    return typeof r === 'string' && r.length === 2 ? r.toUpperCase() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Bulk-insert rows in one statement — far cheaper than a call per product. */
+function insertBulk(rows: [string, string, string, number, number, number, number, number][], country: string) {
+  if (rows.length === 0) return;
+  const now = new Date().toISOString();
+  const placeholders = rows.map(() => '(?,?,?,?,?,?,?,?,?,?,?)').join(',');
+  const args: (string | number | null)[] = [];
+  for (const r of rows) {
+    args.push(r[0], r[1], r[2] || null, country, r[3], r[4], r[5], r[6], r[7], 'off-sync', now);
+  }
+  db.runSync(
+    `INSERT INTO product_catalog
+       (barcode, name, brand, country, kcalPer100g, proteinPer100g, carbsPer100g, fatPer100g, sugarPer100g, source, updatedAt)
+     VALUES ${placeholders}
+     ON CONFLICT(barcode) DO NOTHING`,
+    ...args,
+  );
+}
+
+/**
+ * Pull the next few pages of this device's country catalogue. Fire and forget
+ * on app open; safe to call often (it no-ops once the country is fully synced).
+ */
+export async function syncCountryCatalogue(maxPages = PAGES_PER_LAUNCH): Promise<number> {
+  initFoodDb();
+  const region = deviceRegion();
+  const slug = region ? COUNTRY_SLUGS[region] : null;
+  if (!slug) return 0; // unknown market: live lookups + AI fallback still cover it
+
+  const doneKey = `sync_${slug}_done`;
+  if (getCatalogMeta(doneKey) === '1') return 0;
+
+  const pageKey = `sync_${slug}_page`;
+  let page = parseInt(getCatalogMeta(pageKey) ?? '1', 10);
+  if (!isFinite(page) || page < 1) page = 1;
+
+  let added = 0;
+  for (let i = 0; i < maxPages; i++) {
+    const url = `https://${WORLD_HOST}/api/v2/search?countries_tags_en=${slug}`
+      + `&fields=${SYNC_FIELDS}&page_size=${SYNC_PAGE_SIZE}&page=${page}`;
+    let json: { count?: number; products?: unknown[] } | null = null;
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'SnapCal (offline catalogue sync)' },
+        signal: AbortSignal.timeout(30000),
+      });
+      const text = await res.text();
+      if (!text.startsWith('{')) break; // throttled — try again next launch
+      json = JSON.parse(text);
+    } catch {
+      break; // offline or slow; nothing lost, resume next launch
+    }
+
+    const products = (json?.products ?? []) as Record<string, unknown>[];
+    if (products.length === 0) {
+      setCatalogMeta(doneKey, '1');
+      break;
+    }
+
+    const rows: [string, string, string, number, number, number, number, number][] = [];
+    for (const p of products) {
+      const n = (p.nutriments ?? {}) as Record<string, unknown>;
+      const kcal = typeof n['energy-kcal_100g'] === 'number' ? (n['energy-kcal_100g'] as number) : null;
+      const nameRaw = (p.product_name_el as string) || (p.product_name as string) || '';
+      const name = String(nameRaw).replace(/\s+/g, ' ').trim();
+      const code = String(p.code ?? '').trim();
+      if (!code || !name || name.length < 2 || name.length > 60) continue;
+      if (kcal === null || kcal < 0 || kcal > 900) continue;
+      const num = (v: unknown) => (typeof v === 'number' && isFinite(v) ? v : 0);
+      rows.push([
+        code, name, String(p.brands ?? '').split(',')[0].slice(0, 28),
+        kcal, num(n.proteins_100g), num(n.carbohydrates_100g), num(n.fat_100g), num(n.sugars_100g),
+      ]);
+    }
+
+    if (rows.length) {
+      db.withTransactionSync(() => insertBulk(rows, region!));
+      added += rows.length;
+    }
+
+    page++;
+    setCatalogMeta(pageKey, String(page));
+    if (json?.count && (page - 1) * SYNC_PAGE_SIZE >= json.count) {
+      setCatalogMeta(doneKey, '1');
+      break;
+    }
+  }
+  return added;
+}
+
+/** How far along this device's country sync is, for the settings screen. */
+export function catalogSyncStatus(): { country: string | null; count: number; done: boolean } {
+  const region = deviceRegion();
+  const slug = region ? COUNTRY_SLUGS[region] : null;
+  return {
+    country: region,
+    count: catalogCount(),
+    done: slug ? getCatalogMeta(`sync_${slug}_done`) === '1' : false,
+  };
 }
 
 // Run once, as soon as this module is imported — no dependency on _layout.tsx

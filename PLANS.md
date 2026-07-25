@@ -80,10 +80,16 @@ complaint, not a nice-to-have:
   a sharing/growth loop, not yet a social network. A shared feed needs a
   backend; Firebase is the obvious next step and `social.ts` is structured so
   the store can be swapped for a synced one.
-- **Seed catalogue is 79 products.** Real, verified barcodes (pulled live from
-  Open Food Facts, not invented), but that is a starter set covering common
-  Greek items, not a national database. It grows per user as they scan, and the
-  AI label fallback covers whatever nobody knows.
+- **Catalogue is ~17,350 bundled products** (v0.6.1), built from the official
+  Open Food Facts export rather than the rate-limited search API: every
+  Greek-tagged product that actually carries nutrition data (1,967), Cyprus
+  (383), and the 15,000 most-scanned products worldwide by `unique_scans_n`
+  (so Nutella, Barilla, Coca-Cola and friends resolve offline too). Verified in
+  SQLite: 17,170 rows after dedup, inserted in 37ms.
+- **Greece's real ceiling in Open Food Facts is ~2k products, not 11k.** The
+  API reports 11,434 Greek-tagged items, but ~83% have no nutrition data at
+  all — they are photo- or name-only records. Converting kJ to kcal recovered
+  only 9 more. The AI label reader is what covers the rest.
 - **Verified live 2026-07-25:** the `gr.openfoodfacts.org` subdomain returns
   the same data as `world.` (one database, localized view), so the country
   routing is not itself extra coverage. What actually fixes Greece is the
