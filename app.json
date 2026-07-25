@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "dev.ermis.snapcal",
-      "versionCode": 5,
+      "versionCode": 6,
       "adaptiveIcon": {
         "backgroundColor": "#faf8f4",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
