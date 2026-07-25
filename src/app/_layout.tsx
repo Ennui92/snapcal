@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { retryPending } from '@/lib/analyzer';
+import { initFoodDb, refreshCatalog } from '@/lib/food-db';
 import { initDb } from '@/lib/db';
 import { initLanguage } from '@/lib/i18n';
 import { StoreProvider } from '@/lib/store';
@@ -28,6 +29,9 @@ Notifications.setNotificationHandler({
 
 initDb();
 initLanguage();
+// The product catalogue is seeded for the user's country and topped up on
+// every launch, so barcode scanning is instant and works offline.
+initFoodDb();
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -40,6 +44,8 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
       // Anything that never finished analyzing gets another shot on launch.
       retryPending();
+      // Re-seed the local product catalogue if the bundled data moved on.
+      refreshCatalog();
     }
   }, [fontsLoaded]);
 

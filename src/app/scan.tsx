@@ -4,8 +4,9 @@
 // Open Food Facts yet.
 import * as Haptics from 'expo-haptics';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { router } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
@@ -15,8 +16,16 @@ import { useColors } from '@/lib/theme-context';
 import { Icon } from '@/components/icons';
 import { BigButton, Card, Chip } from '@/components/ui';
 import { lookupBarcode, logScannedProduct, type ProductLookup } from '@/lib/barcode';
+import { UPLOAD_JPEG_QUALITY, UPLOAD_WIDTH } from '@/lib/config';
+import { identifyProductByPhoto, saveProduct, type AiPhotoProduct } from '@/lib/food-db';
 import { fmtKcal, mealLabel, mealTypeForNow } from '@/lib/nutrition';
 import { useStore } from '@/lib/store';
+
+const SOURCE_LABEL: Record<string, string> = {
+  local: 'Saved locally',
+  off: 'Open Food Facts',
+  ai: 'Read from label',
+};
 
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack', 'drink'] as const;
 const GRAM_STEP = 10;
