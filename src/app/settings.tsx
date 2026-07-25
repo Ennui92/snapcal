@@ -2,10 +2,11 @@
 // connections, weight logging, nudge strictness, hand calibration and a
 // full data export.
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C, F } from '@/constants/theme';
+import { F, type Palette } from '@/constants/theme';
+import { useColors, useThemeMode } from '@/lib/theme-context';
 import { BigButton, Card, Chip, Section } from '@/components/ui';
 import { TabBar } from '@/components/tab-bar';
 import { isPremium, trialDaysLeft } from '@/lib/premium';
@@ -18,6 +19,9 @@ import { useStore } from '@/lib/store';
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { profile, refresh } = useStore();
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  const { mode, setMode } = useThemeMode();
   const [p, setP] = useState<Profile>(profile);
   const [weightInput, setWeightInput] = useState('');
 
@@ -89,6 +93,14 @@ export default function SettingsScreen() {
           </Pressable>
         )}
       </View>
+
+      <Section title="Appearance">
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+          <Chip label="Dark" selected={mode === 'dark'} onPress={() => { setMode('dark'); refresh(); }} />
+          <Chip label="Light" selected={mode === 'light'} onPress={() => { setMode('light'); refresh(); }} />
+          <Chip label="System" selected={mode === 'system'} onPress={() => { setMode('system'); refresh(); }} />
+        </View>
+      </Section>
 
       <Section title={t('set.language')}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
@@ -222,6 +234,8 @@ function clampNum(v: string, min: number, max: number, fallback: number): number
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
@@ -231,6 +245,8 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 function NumInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const [local, setLocal] = useState(value);
   return (
     <TextInput
@@ -243,7 +259,7 @@ function NumInput({ value, onChange }: { value: string; onChange: (v: string) =>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   headerTitle: { fontFamily: F.heading, fontSize: 20, color: C.ink },

@@ -4,12 +4,13 @@
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AVERAGE_HAND_CM } from '@/lib/config';
-import { C, F, radius } from '@/constants/theme';
+import { F, radius, type Palette } from '@/constants/theme';
+import { useColors } from '@/lib/theme-context';
 import { BigButton, Card, Chip } from '@/components/ui';
 import { DemoFlow } from '@/components/demo-flow';
 import { saveProfile, type Profile } from '@/lib/db';
@@ -23,6 +24,8 @@ type Draft = Omit<Profile, 'id' | 'dailyBudgetKcal' | 'onboardedAt'>;
 const STEPS = 5;
 
 export default function Onboarding() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { refresh } = useStore();
   const [step, setStep] = useState(0);
@@ -210,6 +213,7 @@ export default function Onboarding() {
 }
 
 function Bullet({ text }: { text: string }) {
+  const C = useColors();
   return (
     <View style={{ flexDirection: 'row', marginBottom: 10 }}>
       <Text style={{ color: C.amber, marginRight: 10, fontSize: 15 }}>●</Text>
@@ -219,6 +223,8 @@ function Bullet({ text }: { text: string }) {
 }
 
 function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={styles.fieldRow}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -228,6 +234,8 @@ function FieldRow({ label, children }: { label: string; children: React.ReactNod
 }
 
 function Num({ value, onChange, min, max, decimal }: { value: number; onChange: (v: number) => void; min: number; max: number; decimal?: boolean }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const [local, setLocal] = useState(String(value));
   return (
     <TextInput
@@ -244,7 +252,7 @@ function Num({ value, onChange, min, max, decimal }: { value: number; onChange: 
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   heroBox: {
     width: 86, height: 86, borderRadius: 8, borderWidth: 1, borderColor: C.border,
     alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 22,

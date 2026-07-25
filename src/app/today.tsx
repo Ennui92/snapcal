@@ -1,9 +1,10 @@
 // Today's log: the meter, the streak, and every entry of the day.
 import { router, useFocusEffect } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C, F, label, radius } from '@/constants/theme';
+import { F, label, radius, type Palette } from '@/constants/theme';
+import { useColors } from '@/lib/theme-context';
 import { BudgetRing } from '@/components/budget-ring';
 import { EntryCard } from '@/components/entry-card';
 import { Icon, type IconName } from '@/components/icons';
@@ -46,6 +47,8 @@ function streakDays(profile: Profile): number {
 function Tab({ icon, text, onPress, tone = 'default' }: {
   icon: IconName; text: string; onPress: () => void; tone?: 'default' | 'signal';
 }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const color = tone === 'signal' ? C.signal : C.ink;
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.tab, pressed && { backgroundColor: C.raised }]}>
@@ -58,6 +61,8 @@ function Tab({ icon, text, onPress, tone = 'default' }: {
 export default function TodayScreen() {
   const { refresh, version } = useStore();
   const insets = useSafeAreaInsets();
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [consumed, setConsumed] = useState(0);
   const [budget, setBudget] = useState(0);
@@ -152,7 +157,7 @@ export default function TodayScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

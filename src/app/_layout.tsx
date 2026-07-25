@@ -8,11 +8,11 @@ import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { C } from '@/constants/theme';
 import { retryPending } from '@/lib/analyzer';
 import { initDb } from '@/lib/db';
 import { initLanguage } from '@/lib/i18n';
 import { StoreProvider } from '@/lib/store';
+import { ThemeProvider, useColors, useThemeMode } from '@/lib/theme-context';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -47,19 +47,32 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StoreProvider>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: C.bg },
-            animation: 'slide_from_right',
-          }}
-        >
-          <Stack.Screen name="index" options={{ animation: 'fade' }} />
-          <Stack.Screen name="today" options={{ animation: 'slide_from_bottom' }} />
-        </Stack>
-      </StoreProvider>
+      <ThemeProvider>
+        <StoreProvider>
+          <ThemedStack />
+        </StoreProvider>
+      </ThemeProvider>
     </GestureHandlerRootView>
+  );
+}
+
+// Inside the provider so the Stack background and status bar follow the theme.
+function ThemedStack() {
+  const C = useColors();
+  const { isDark } = useThemeMode();
+  return (
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: C.bg },
+          animation: 'slide_from_right',
+        }}
+      >
+        <Stack.Screen name="index" options={{ animation: 'fade' }} />
+        <Stack.Screen name="today" options={{ animation: 'slide_from_bottom' }} />
+      </Stack>
+    </>
   );
 }

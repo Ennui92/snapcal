@@ -1,10 +1,11 @@
 // The onboarding demo: the whole app acted out in ten seconds. A mock camera
 // snaps, a mock entry card analyzes itself, the budget ring fills. Advances
 // on its own; a tap skips ahead; replayable.
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
-import { C, F, radius, shadow } from '@/constants/theme';
+import { F, radius, shadow, type Palette } from '@/constants/theme';
+import { useColors } from '@/lib/theme-context';
 import { BudgetRing } from '@/components/budget-ring';
 import { t } from '@/lib/i18n';
 import { fmtKcal } from '@/lib/nutrition';
@@ -19,6 +20,8 @@ const DEMO_BUDGET = 1800;
 const DEMO_CONSUMED = 1080;
 
 export function DemoFlow() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const [phase, setPhase] = useState<Phase>('shoot');
 
   useEffect(() => {
@@ -73,6 +76,8 @@ export function DemoFlow() {
 }
 
 function CameraMock() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const pulse = useSharedValue(1);
   const flash = useSharedValue(0);
 
@@ -97,6 +102,8 @@ function CameraMock() {
 }
 
 function EntryMock({ done }: { done: boolean }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <Animated.View entering={FadeInDown.springify()} style={styles.entryMock}>
       <View style={styles.entryThumb}><Icon name="cutlery" size={22} color={C.faint} /></View>
@@ -122,7 +129,7 @@ function EntryMock({ done }: { done: boolean }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   box: {
     backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
     borderRadius: radius.card, padding: 16, ...shadow.soft,

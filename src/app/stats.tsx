@@ -5,7 +5,8 @@ import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C, F, radius } from '@/constants/theme';
+import { F, radius, type Palette } from '@/constants/theme';
+import { useColors } from '@/lib/theme-context';
 import { Card, Chip } from '@/components/ui';
 import { TabBar } from '@/components/tab-bar';
 import { burnedForRange } from '@/lib/activity';
@@ -16,6 +17,8 @@ import { effectiveBudget, fmtKcal } from '@/lib/nutrition';
 type Range = 7 | 30;
 
 export default function StatsScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const [range, setRange] = useState<Range>(7);
   const profile = getProfile();
@@ -136,7 +139,7 @@ export default function StatsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   headerTitle: { fontFamily: F.heading, fontSize: 20, color: C.ink },

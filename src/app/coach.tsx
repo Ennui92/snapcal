@@ -3,12 +3,13 @@
 // accent for the user's own bubbles and the send button.
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C, F, radius } from '@/constants/theme';
+import { F, radius, type Palette } from '@/constants/theme';
+import { useColors } from '@/lib/theme-context';
 import { Icon } from '@/components/icons';
 import { Grain, IconButton, ScreenHeader } from '@/components/ui';
 import { addMessage, askCoach, getMessages, type CoachMessage } from '@/lib/coach';
@@ -21,6 +22,8 @@ const SUGGESTIONS = [
 ];
 
 export default function CoachScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<CoachMessage>>(null);
 
@@ -170,6 +173,8 @@ export default function CoachScreen() {
 }
 
 function Bubble({ message }: { message: CoachMessage }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const isUser = message.role === 'user';
   return (
     <View style={[styles.bubbleRow, isUser ? { justifyContent: 'flex-end' } : { justifyContent: 'flex-start' }]}>
@@ -181,6 +186,8 @@ function Bubble({ message }: { message: CoachMessage }) {
 }
 
 function TypingBubble() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={[styles.bubbleRow, { justifyContent: 'flex-start' }]}>
       <View style={[styles.bubble, styles.bubbleCoach]}>
@@ -190,7 +197,7 @@ function TypingBubble() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
   emptyIcon: {

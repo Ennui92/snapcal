@@ -1,10 +1,11 @@
 // Shared primitives. Squared corners, hairline rules, uppercase mono labels,
 // one acid accent. Buttons are big because they get pressed one-handed while
 // holding a fork.
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Image, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { C, F, label, radius } from '@/constants/theme';
+import { F, label, radius, type Palette } from '@/constants/theme';
+import { useColors } from '@/lib/theme-context';
 import { Icon, type IconName } from '@/components/icons';
 
 export function BigButton({
@@ -13,6 +14,8 @@ export function BigButton({
   label: string; onPress: () => void; kind?: 'primary' | 'ghost' | 'danger';
   style?: StyleProp<ViewStyle>; disabled?: boolean; icon?: IconName;
 }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const fg = kind === 'primary' ? C.onSignal : kind === 'danger' ? C.danger : C.ink;
   return (
     <Pressable
@@ -37,6 +40,8 @@ export function BigButton({
 
 /** Tiny uppercase section label with a hairline rule running to the edge. */
 export function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={{ marginBottom: 26 }}>
       <View style={styles.sectionHead}>
@@ -49,12 +54,16 @@ export function Section({ title, children }: { title: string; children: React.Re
 }
 
 export function Card({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return <View style={[styles.card, style]}>{children}</View>;
 }
 
 export function Chip({
   label: text, selected, onPress,
 }: { label: string; selected: boolean; onPress: () => void }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <Pressable
       onPress={() => {
@@ -72,6 +81,8 @@ export function Chip({
 export function IconButton({
   icon, onPress, tone = 'default',
 }: { icon: IconName; onPress: () => void; tone?: 'default' | 'signal' }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <Pressable
       onPress={() => {
@@ -90,6 +101,8 @@ export function IconButton({
 export function ScreenHeader({
   title, left, right,
 }: { title: string; left?: React.ReactNode; right?: React.ReactNode }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={styles.header}>
       <View style={styles.headerSide}>{left}</View>
@@ -103,6 +116,8 @@ export function ScreenHeader({
 export function Readout({
   value, unit, tone = 'ink', size = 34,
 }: { value: string; unit?: string; tone?: 'ink' | 'signal' | 'danger' | 'muted'; size?: number }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const color = tone === 'signal' ? C.signal : tone === 'danger' ? C.danger : tone === 'muted' ? C.muted : C.ink;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
@@ -125,7 +140,7 @@ export function Grain({ opacity = 0.035 }: { opacity?: number }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   btn: {
     borderRadius: radius.button,
     paddingVertical: 17,

@@ -3,10 +3,11 @@
 // optional and prefilled.
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C, F } from '@/constants/theme';
+import { F, type Palette } from '@/constants/theme';
+import { useColors } from '@/lib/theme-context';
 import { BigButton, Card, Chip, Section } from '@/components/ui';
 import { insertManualEntry } from '@/lib/db';
 import { t } from '@/lib/i18n';
@@ -16,6 +17,8 @@ import { useStore } from '@/lib/store';
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack', 'drink'] as const;
 
 export default function AddManualScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { refresh } = useStore();
 
@@ -147,7 +150,7 @@ export default function AddManualScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   headerTitle: { fontFamily: F.heading, fontSize: 20, color: C.ink },

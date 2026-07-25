@@ -1,11 +1,12 @@
 // The day, as a light meter. A 270 degree instrument arc with real tick marks,
 // a monospaced readout, and a hard mark at the budget line so "over" is a
 // place you can see yourself crossing, not just a colour change.
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
-import { C, F, label } from '@/constants/theme';
+import { F, label, type Palette } from '@/constants/theme';
+import { useColors } from '@/lib/theme-context';
 import { t } from '@/lib/i18n';
 import { fmtKcal } from '@/lib/nutrition';
 
@@ -26,6 +27,8 @@ function arcPath(cx: number, cy: number, r: number, fromDeg: number, sweepDeg: n
 }
 
 export function BudgetRing({ consumed, budget, size = 236 }: { consumed: number; budget: number; size?: number }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const stroke = 10;
   const cx = size / 2;
   const cy = size / 2;
@@ -106,7 +109,7 @@ export function BudgetRing({ consumed, budget, size = 236 }: { consumed: number;
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   eyebrow: { ...label, fontSize: 10, color: C.faint, marginBottom: 4 },
   big: { fontFamily: F.mono, fontSize: 54, color: C.ink, letterSpacing: -2.5, lineHeight: 60 },
   sub: { flexDirection: 'row', alignItems: 'baseline', gap: 5, marginTop: 6 },

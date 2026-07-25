@@ -6,12 +6,13 @@
 //
 // The centre item is the shutter shortcut back to the camera, sized up like a
 // real camera app's capture button.
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C, F, label } from '@/constants/theme';
+import { F, label, type Palette } from '@/constants/theme';
+import { useColors } from '@/lib/theme-context';
 import { Icon, type IconName } from '@/components/icons';
 
 type Item = { route: string; icon: IconName; label: string };
@@ -26,6 +27,8 @@ const RIGHT: Item[] = [
 ];
 
 function TabItem({ item, active }: { item: Item; active: boolean }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <Pressable
       style={styles.item}
@@ -43,6 +46,8 @@ function TabItem({ item, active }: { item: Item; active: boolean }) {
 }
 
 export function TabBar() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const path = usePathname();
   const isActive = (route: string) => path === route || (route === '/today' && path === '/');
@@ -66,7 +71,7 @@ export function TabBar() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   bar: {
     flexDirection: 'row',
     alignItems: 'flex-start',

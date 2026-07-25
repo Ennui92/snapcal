@@ -8,7 +8,8 @@ import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { Easing, useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
-import { C, F, label, radius } from '@/constants/theme';
+import { F, label, radius, type Palette } from '@/constants/theme';
+import { useColors } from '@/lib/theme-context';
 import { BigButton, Card, Chip, Grain, IconButton, ScreenHeader, Section } from '@/components/ui';
 import { Icon } from '@/components/icons';
 import { localeTag } from '@/lib/i18n';
@@ -57,6 +58,8 @@ function fmtDurationShort(ms: number): string {
 function FastRing({
   elapsedMs, targetMs, size = 236,
 }: { elapsedMs: number; targetMs: number; size?: number }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const stroke = 10;
   const cx = size / 2;
   const cy = size / 2;
@@ -133,6 +136,8 @@ function FastRing({
 }
 
 function HistoryRow({ session }: { session: FastingSession }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const start = new Date(session.startAt);
   const end = new Date(session.endAt!);
   const durationMs = end.getTime() - start.getTime();
@@ -156,6 +161,8 @@ function HistoryRow({ session }: { session: FastingSession }) {
 }
 
 export default function FastingScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const [active, setActive] = useState<FastingSession | null>(null);
   const [recent, setRecent] = useState<FastingSession[]>([]);
@@ -299,7 +306,7 @@ export default function FastingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   stateRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,

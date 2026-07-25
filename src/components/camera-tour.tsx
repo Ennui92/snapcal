@@ -1,13 +1,16 @@
 // First-launch coach marks on the camera: three tooltips pointing at the
 // shutter, the budget pill and the gallery button. Tap anywhere to advance.
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C, F, radius } from '@/constants/theme';
+import { F, radius, type Palette } from '@/constants/theme';
+import { useColors } from '@/lib/theme-context';
 import { t } from '@/lib/i18n';
 
 export function CameraTour({ onDone }: { onDone: () => void }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState(0);
   const W = Dimensions.get('window').width;
@@ -45,7 +48,7 @@ export function CameraTour({ onDone }: { onDone: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   backdrop: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(20,18,16,0.62)', zIndex: 20,

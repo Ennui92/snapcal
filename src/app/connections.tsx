@@ -2,10 +2,11 @@
 // Apple Health (placeholder until the iOS build exists). Tracked workout
 // burn raises the day's calorie budget — move more, eat more.
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C, F } from '@/constants/theme';
+import { F, type Palette } from '@/constants/theme';
+import { useColors } from '@/lib/theme-context';
 import { BigButton, Card } from '@/components/ui';
 import {
   anyProviderConnected, burnedForDay, lastSyncAt, setUseTrackedActivity, syncActivity, useTrackedActivity,
@@ -23,6 +24,8 @@ import { useStore } from '@/lib/store';
 import { Icon, type IconName } from '@/components/icons';
 
 export default function ConnectionsScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { refresh, version } = useStore();
   const [busy, setBusy] = useState<string | null>(null);
@@ -193,6 +196,8 @@ function ProviderCard({
   actionDisabled: boolean; busy: boolean; unavailableNote: string | null; comingSoon?: boolean;
   onConnect: () => void; onDisconnect: () => void;
 }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <Card style={{ marginBottom: 12, opacity: comingSoon ? 0.65 : 1 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -219,7 +224,7 @@ function ProviderCard({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   provIcon: {
     width: 40, height: 40, borderRadius: 6, borderWidth: 1, borderColor: C.border,
     alignItems: 'center', justifyContent: 'center', marginRight: 12,

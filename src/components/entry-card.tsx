@@ -1,17 +1,20 @@
 // A log row, styled like a contact sheet: square frame, hairline rule, the
 // number set in mono on the right. No floating card, no drop shadow.
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing, FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming,
 } from 'react-native-reanimated';
-import { C, F, label, radius } from '@/constants/theme';
+import { F, label, radius, type Palette } from '@/constants/theme';
+import { useColors } from '@/lib/theme-context';
 import { Icon } from '@/components/icons';
 import type { Entry } from '@/lib/db';
 import { localeTag, t } from '@/lib/i18n';
 import { fmtKcal, mealLabel } from '@/lib/nutrition';
 
 function PulseDot() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const o = useSharedValue(0.35);
   useEffect(() => {
     o.value = withRepeat(
@@ -28,6 +31,8 @@ function PulseDot() {
 }
 
 export function EntryCard({ entry, onPress, index = 0 }: { entry: Entry; onPress: () => void; index?: number }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const time = new Date(entry.takenAt).toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit' });
   const consumed = (entry.totalKcal * entry.eatenPct) / 100;
   const pending = entry.status === 'pending' || entry.status === 'analyzing';
@@ -78,7 +83,7 @@ export function EntryCard({ entry, onPress, index = 0 }: { entry: Entry; onPress
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',

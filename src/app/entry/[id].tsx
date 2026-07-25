@@ -3,10 +3,11 @@
 import Slider from '@react-native-community/slider';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C, F, radius } from '@/constants/theme';
+import { F, radius, type Palette } from '@/constants/theme';
+import { useColors } from '@/lib/theme-context';
 import { BigButton, Card } from '@/components/ui';
 import { analyzeEntry } from '@/lib/analyzer';
 import {
@@ -19,6 +20,8 @@ import { useStore } from '@/lib/store';
 import { Icon } from '@/components/icons';
 
 export default function EntryDetail() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const entryId = Number(id);
   const insets = useSafeAreaInsets();
@@ -259,7 +262,7 @@ export default function EntryDetail() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   // contain, not cover: show the plate exactly as shot, letterboxed on dark
   photoWrap: { width: '100%', height: 320, backgroundColor: '#141210' },

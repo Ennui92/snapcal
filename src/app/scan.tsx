@@ -5,12 +5,13 @@
 import * as Haptics from 'expo-haptics';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C, F, label, radius } from '@/constants/theme';
+import { F, label, radius, type Palette } from '@/constants/theme';
+import { useColors } from '@/lib/theme-context';
 import { Icon } from '@/components/icons';
 import { BigButton, Card, Chip } from '@/components/ui';
 import { lookupBarcode, logScannedProduct, type ProductLookup } from '@/lib/barcode';
@@ -23,6 +24,8 @@ const BARCODE_TYPES = ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128'] as const;
 
 /** Wide viewfinder — barcodes are horizontal, unlike the photo screen's frame. */
 function Frame() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View pointerEvents="none" style={styles.frameWrap}>
       <View style={styles.frame}>
@@ -37,6 +40,8 @@ function Frame() {
 }
 
 export default function ScanScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { refresh } = useStore();
   const [permission, requestPermission] = useCameraPermissions();
@@ -297,7 +302,7 @@ export default function ScanScreen() {
 
 const FRAME_W = 260;
 const FRAME_H = 150;
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
 
   frameWrap: { position: 'absolute', top: '30%', alignSelf: 'center', alignItems: 'center' },

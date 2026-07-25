@@ -5,7 +5,8 @@ import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C, F, label } from '@/constants/theme';
+import { F, label, type Palette } from '@/constants/theme';
+import { useColors } from '@/lib/theme-context';
 import { BigButton, Card, Grain, IconButton, Readout, ScreenHeader, Section } from '@/components/ui';
 import { Icon } from '@/components/icons';
 import { consumedForDay, dayKeyFor, getProfile } from '@/lib/db';
@@ -21,6 +22,8 @@ const GOAL_TEXT: Record<string, string> = {
 };
 
 export default function RecipesScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const [state, setState] = useState<LoadState>('loading');
   const [result, setResult] = useState<SuggestResult | null>(null);
@@ -131,6 +134,8 @@ export default function RecipesScreen() {
 }
 
 function MealCard({ meal }: { meal: MealSuggestion }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const [open, setOpen] = useState(false);
   return (
     <Card style={styles.mealCard}>
@@ -174,7 +179,7 @@ function MealCard({ meal }: { meal: MealSuggestion }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   remainingBlock: { alignItems: 'center', paddingVertical: 18, marginBottom: 6 },
   remainingLabel: { ...label, marginBottom: 10 },

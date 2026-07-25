@@ -2,10 +2,11 @@
 // not wired yet (RevenueCat comes with the store launch), so the CTA flips a
 // local entitlement for now so the premium flows can be exercised end to end.
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C, F, label, radius } from '@/constants/theme';
+import { F, label, radius, type Palette } from '@/constants/theme';
+import { useColors } from '@/lib/theme-context';
 import { Grain, IconButton } from '@/components/ui';
 import { Icon } from '@/components/icons';
 import { setEntitlement, trialDaysLeft } from '@/lib/premium';
@@ -33,6 +34,8 @@ const FREE_PERKS = [
 ];
 
 export default function PlusScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { refresh } = useStore();
   const daysLeft = trialDaysLeft();
@@ -110,7 +113,7 @@ export default function PlusScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   head: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   hero: { alignItems: 'center', marginBottom: 24 },
