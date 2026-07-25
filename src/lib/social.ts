@@ -1,14 +1,19 @@
 // Social layer: capture a share-card to a PNG, hand it to the OS share sheet,
 // and keep a record of what the user posted.
 //
-// LOCAL-ONLY for now — every post in `posts` lives in this device's SQLite,
-// same as everything else in db.ts. There is no shared/remote feed yet; the
-// owner already runs Firebase infra for other apps, so the natural next step
-// is a Firestore-backed feed people can actually see each other's posts on.
-// To keep that swap cheap, the storage surface here is deliberately tiny and
-// already async-shaped where it matters (capture/share are async; the store
-// itself is sync today because SQLite is, but callers should treat addPost/
-// getPosts/deletePost as if they could become network calls later).
+// LOCAL-ONLY for now — every post in `posts` (and every byte of the profile
+// name/bio below) lives in this device's SQLite, same as everything else in
+// db.ts. There is no shared/remote feed yet, no accounts, and nobody but the
+// device owner can ever see a post: "feed" here means "your wall," a private
+// scrapbook of images you generate and then share out through the OS share
+// sheet. The owner already runs Firebase infra for other apps, so the natural
+// next step is a Firestore-backed feed people can actually see each other's
+// posts on, at which point `posts` and `profile_meta` both grow a `userId`
+// and sync up instead of staying device-bound. To keep that swap cheap, the
+// storage surface here is deliberately tiny and already async-shaped where it
+// matters (capture/share are async; the store itself is sync today because
+// SQLite is, but callers should treat addPost/getPosts/deletePost as if they
+// could become network calls later).
 import type { RefObject } from 'react';
 import { Share, type View } from 'react-native';
 import * as Sharing from 'expo-sharing';
@@ -43,6 +48,12 @@ export function initSocial() {
       imageUri TEXT NOT NULL,
       createdAt TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS profile_meta (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      displayName TEXT NOT NULL DEFAULT '',
+      bio TEXT NOT NULL DEFAULT ''
+    );
+    INSERT OR IGNORE INTO profile_meta (id) VALUES (1);
   `);
 }
 
@@ -88,4 +99,23 @@ export function getPosts(): Post[] {
 
 export function deletePost(id: number) {
   db.runSync('DELETE FROM posts WHERE id=?', id);
+}
+
+// --- profile identity (the part of "social" that genuinely works offline) ---
+//
+// A display name and one-line bio the user sets for themselves, shown on the
+// /profile screen and baked into the profile share card. Local-only, same as
+// everything else in this file — there is no username, no handle, nothing
+// another device could look up.
+export type ProfileMeta = { displayName: string; bio: string };
+
+export function getProfileMeta(): ProfileMeta {
+  return db.getFirstSync<ProfileMeta>('SELECT displayName, bio FROM profile_meta WHERE id = 1')
+    ?? { displayName: '', bio: '' };
+}
+
+export function setProfileMeta(m: Partial<ProfileMeta>) {
+  const cur = getProfileMeta();
+  const next = { ...cur, ...m };
+  db.runSync('UPDATE profile_meta SET displayName=?, bio=? WHERE id=1', next.displayName, next.bio);
 }

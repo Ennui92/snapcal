@@ -16,6 +16,7 @@ import {
 } from './db';
 import { getLanguage, LANG_NAME_EN, localeTag } from './i18n';
 import { checkPace } from './nutrition';
+import { activeFast } from './fasting';
 
 type AiItem = {
   name: string;
@@ -236,6 +237,11 @@ async function maybeNudge(): Promise<void> {
     const { budget } = budgetForDay(profile, dayKey);
     const nudge = checkPace(profile, budget, consumed, now);
     if (!nudge) return;
+
+    // Never nag someone to eat lighter while they are mid-fast — they are
+    // already not eating, and the suggestion reads as nonsense.
+    const fast = activeFast();
+    if (fast && !fast.reachedTarget) return;
 
     const last = getMeta('lastNudgeAt');
     if (last && now.getTime() - new Date(last).getTime() < 4 * 3600 * 1000) return;

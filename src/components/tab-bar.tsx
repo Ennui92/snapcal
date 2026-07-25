@@ -23,7 +23,7 @@ const LEFT: Item[] = [
 ];
 const RIGHT: Item[] = [
   { route: '/stats', icon: 'chart', label: 'Stats' },
-  { route: '/feed', icon: 'share', label: 'Feed' },
+  { route: '/profile', icon: 'hand', label: 'You' },
 ];
 
 function TabItem({ item, active }: { item: Item; active: boolean }) {

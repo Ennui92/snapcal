@@ -31,6 +31,11 @@ export type DaySharePayload = {
   mealCount: number;
   streak: number;
   photos: string[]; // up to 4 photo uris
+  /** Tracked exercise for the day, when a fitness provider is connected. */
+  burn?: number | null;
+  steps?: number;
+  /** Hours spent fasting during the day, 0 when they weren't. */
+  fastingHours?: number;
 };
 
 function Brand({ light = false }: { light?: boolean }) {
@@ -189,6 +194,26 @@ export const DayShareCard = forwardRef<View, { summary: DaySharePayload; width?:
                 <Text style={styles.statNum}>{summary.streak}</Text>
               </View>
               <Text style={styles.statLabel}>Day streak</Text>
+            </View>
+          )}
+          {/* A day is not just what you ate: show the training and the fast,
+              which is what makes the card worth posting. */}
+          {summary.burn != null && summary.burn > 0 && (
+            <View style={styles.statBlock}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Icon name="bolt" size={16} color={D.signal} weight={2} />
+                <Text style={styles.statNum}>{Math.round(summary.burn)}</Text>
+              </View>
+              <Text style={styles.statLabel}>Kcal burned</Text>
+            </View>
+          )}
+          {summary.fastingHours != null && summary.fastingHours >= 1 && (
+            <View style={styles.statBlock}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Icon name="clock" size={16} color={D.ink} weight={2} />
+                <Text style={styles.statNum}>{Math.round(summary.fastingHours)}h</Text>
+              </View>
+              <Text style={styles.statLabel}>Fasted</Text>
             </View>
           )}
         </View>

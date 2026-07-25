@@ -152,6 +152,7 @@ export default function TodayScreen() {
               <Tab icon="cutlery" text="Recipes" onPress={() => router.push('/recipes')} />
               <Tab icon="clock" text="Fasting" onPress={() => router.push('/fasting')} />
               <Tab icon="plus" text={t('today.addManual')} onPress={() => router.push('/add')} />
+              <Tab icon="share" text="Wall" onPress={() => router.push('/feed')} />
             </View>
           </View>
         }

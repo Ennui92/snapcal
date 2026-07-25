@@ -45,7 +45,11 @@ export type CatalogRow = {
   updatedAt: string;
 };
 
-export type ResolvedSource = 'local' | 'off';
+// 'user' marks a row a person corrected by hand in the confirm sheet (wrong
+// name or wrong kcal). It is still served from the local cache like 'local',
+// but callers can use it to show a distinct "corrected by you" badge and to
+// know the number was deliberately overridden, not just machine-read.
+export type ResolvedSource = 'local' | 'off' | 'user';
 
 export type ResolvedProduct = {
   name: string;
@@ -288,7 +292,7 @@ export function saveProduct(p: {
   }
 }
 
-function rowToResolved(row: CatalogRow, source: ResolvedSource): ResolvedProduct {
+function rowToResolved(row: CatalogRow): ResolvedProduct {
   return {
     name: row.name,
     brand: row.brand,
@@ -298,8 +302,65 @@ function rowToResolved(row: CatalogRow, source: ResolvedSource): ResolvedProduct
     fatPer100g: row.fatPer100g,
     sugarPer100g: row.sugarPer100g,
     servingGrams: row.servingGrams,
-    source,
+    // A user-corrected row keeps that label forever (it's still 'local' in
+    // the sense of being an instant cache hit); anything else — seed data,
+    // a plain OFF fetch, bulk sync — reads as the generic 'local' badge.
+    source: row.source === 'user' ? 'user' : 'local',
   };
+}
+
+// --- Liquid vs. solid heuristic -------------------------------------------
+// Open Food Facts (and our own catalogue) has no reliable structured "is this
+// a drink" field, so we pattern-match the product's name/brand against common
+// drink words (English + Greek, since Greece is our primary market). This is
+// intentionally simple: a wrong guess only changes the unit LABEL shown to
+// the user (g vs ml) — the math is identical either way (1 ml ~= 1 g for the
+// foods/drinks this matters for), so false positives/negatives are cheap.
+//
+// As a secondary signal (only meaningful when real per-100g macros are
+// available — not a placeholder), near-zero protein and fat with a fairly low
+// kcal count is the nutritional shape of most drinks (water, tea, soda,
+// juice) and is rare for solid foods, which almost always carry some fat or
+// protein. This catches drinks whose name doesn't contain an obvious word.
+const LIQUID_WORDS_RAW = [
+  'tea', 'ice tea', 'iced tea', 'τσάι',
+  'juice', 'χυμός',
+  'water', 'νερό',
+  'cola', 'soda', 'σόδα', 'αναψυκτικό',
+  'beer', 'μπύρα',
+  'wine', 'κρασί',
+  'milk', 'γάλα',
+  'coffee', 'καφές', 'frappe', 'freddo', 'φραπέ', 'φρέντο',
+  'smoothie',
+  'drink', 'ποτό', 'beverage', 'ρόφημα',
+  'lemonade', 'λεμονάδα',
+  'energy drink', 'energy',
+  'tonic',
+  'cider', 'kombucha',
+];
+
+/** Strips accents (Greek tonos included) and lowercases, so matching is accent-insensitive. */
+function normalizeForMatch(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+
+const LIQUID_WORDS = LIQUID_WORDS_RAW.map(normalizeForMatch);
+
+export function isLiquidProduct(
+  name: string,
+  brand?: string | null,
+  macros?: { kcalPer100g: number; proteinPer100g: number; fatPer100g: number },
+): boolean {
+  const hay = normalizeForMatch(`${name} ${brand ?? ''}`);
+  if (LIQUID_WORDS.some(w => hay.includes(w))) return true;
+
+  // Nutrition-shape fallback — only trust it when the macros are real
+  // (callers pass `undefined` for manually-typed entries with no data).
+  if (macros && macros.kcalPer100g > 0 && macros.kcalPer100g <= 80
+    && macros.proteinPer100g <= 0.5 && macros.fatPer100g <= 0.5) {
+    return true;
+  }
+  return false;
 }
 
 // --- Open Food Facts ---
@@ -392,9 +453,15 @@ const WORLD_HOST = 'world.openfoodfacts.org';
 export async function resolveBarcode(code: string): Promise<ResolvedProduct | null> {
   initFoodDb();
 
+  // A cached row — whatever its underlying source — always wins over a fresh
+  // network fetch and short-circuits the cascade below. This is also what
+  // makes a user correction (saveProduct(..., source:'user')) stick: since
+  // `barcode` is UNIQUE, correcting a product just overwrites its one row in
+  // place, and every future scan hits this branch and returns the correction
+  // — the OFF re-fetch code further down never runs again for that barcode.
   const cached = lookupByBarcode(code);
   if (cached && cached.kcalPer100g > 0) {
-    return rowToResolved(cached, 'local');
+    return rowToResolved(cached);
   }
 
   const countryHost = deviceCountryHost();

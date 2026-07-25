@@ -14,6 +14,7 @@ import { Icon } from '@/components/icons';
 import { TabBar } from '@/components/tab-bar';
 import { anyProviderConnected, burnedForRange } from '@/lib/activity';
 import { dayKeyFor, daySummaries, getEntriesForDay, getProfile, getWeights } from '@/lib/db';
+import { fastingHoursForRange } from '@/lib/fasting';
 import { t } from '@/lib/i18n';
 import { effectiveBudget, fmtKcal } from '@/lib/nutrition';
 
@@ -77,6 +78,21 @@ export default function StatsScreen() {
   const net = loggedDays.reduce((a, d) => a + (d.consumed - d.budget), 0);
   const kg = net / 7700;
   const avgBurn = days.length ? Math.round(days.reduce((a, d) => a + d.burn, 0) / days.length) : 0;
+
+  // Fasting, charted alongside eating instead of living on its own screen.
+  const fasting = useMemo(() => {
+    const map = fastingHoursForRange(days[0]?.key ?? dayKeyFor(new Date()), days[days.length - 1]?.key ?? dayKeyFor(new Date()));
+    const hours = days.map(d => map.get(d.key) ?? 0);
+    const fastedDays = hours.filter(h => h >= 1).length;
+    const total = hours.reduce((a, h) => a + h, 0);
+    return {
+      hours,
+      fastedDays,
+      avg: fastedDays ? Math.round((total / fastedDays) * 10) / 10 : 0,
+      longest: hours.length ? Math.round(Math.max(...hours) * 10) / 10 : 0,
+      any: total > 0,
+    };
+  }, [days]);
   const streak = bestStreak(days);
 
   // Macro averages across logged days. Sugar is carved out of carbsG so the
@@ -148,6 +164,9 @@ export default function StatsScreen() {
     const verdict = net < 0
       ? t('stats.shareUnder', { kcal: fmtKcal(-net), kg: Math.abs(kg).toFixed(1) })
       : t('stats.shareOver', { kcal: fmtKcal(net) });
+    const extras: string[] = [];
+    if (connected && avgBurn > 0) extras.push(`Averaging ${fmtKcal(avgBurn)} kcal burned a day.`);
+    if (fasting.any) extras.push(`Fasted on ${fasting.fastedDays} ${fasting.fastedDays === 1 ? 'day' : 'days'}, averaging ${fasting.avg}h.`);
     await Share.share({
       message: t('stats.shareMsg', {
         label: rangeLabel,
@@ -156,7 +175,7 @@ export default function StatsScreen() {
         avg: fmtKcal(avg),
         budget: fmtKcal(budget),
         verdict,
-      }),
+      }) + (extras.length ? `\n${extras.join(' ')}` : ''),
     });
   };
 
@@ -262,6 +281,32 @@ export default function StatsScreen() {
         </Card>
       </Section>
 
+      {fasting.any && (
+        <Section title="Fasting">
+          <Card>
+            <BarChart
+              data={days.map((d, i) => ({ key: d.key, a: fasting.hours[i], muted: fasting.hours[i] < 1 }))}
+              maxValue={Math.max(24, ...fasting.hours)}
+              colorA={CHART_COLORS.fat}
+            />
+            <View style={styles.fastRow}>
+              <View style={styles.fastCell}>
+                <Text style={styles.fastNum}>{fasting.fastedDays}</Text>
+                <Text style={styles.fastLabel}>days fasted</Text>
+              </View>
+              <View style={styles.fastCell}>
+                <Text style={styles.fastNum}>{fasting.avg}h</Text>
+                <Text style={styles.fastLabel}>average fast</Text>
+              </View>
+              <View style={styles.fastCell}>
+                <Text style={styles.fastNum}>{fasting.longest}h</Text>
+                <Text style={styles.fastLabel}>longest</Text>
+              </View>
+            </View>
+          </Card>
+        </Section>
+      )}
+
       <Section title="Consistency">
         <Card>
           <Heatmap cells={heatCells} goodColor={C.signal} badColor={C.danger} />
@@ -326,6 +371,10 @@ function StatTile({ value, text }: { value: string; text: string }) {
 }
 
 const makeStyles = (C: Palette) => StyleSheet.create({
+  fastRow: { flexDirection: 'row', marginTop: 14 },
+  fastCell: { flex: 1, alignItems: 'center', gap: 3 },
+  fastNum: { fontFamily: F.mono, fontSize: 19, color: C.ink },
+  fastLabel: { ...label, fontSize: 8.5, color: C.faint },
   root: { flex: 1, backgroundColor: C.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   headerTitle: { fontFamily: F.heading, fontSize: 20, color: C.ink },

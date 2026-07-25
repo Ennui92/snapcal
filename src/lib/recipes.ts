@@ -6,6 +6,7 @@ import {
   ANALYZER_PROXY_URL, GEMINI_API_KEY, GEMINI_BASE, MODEL_FALLBACK, MODEL_PRIMARY,
 } from './config';
 import { consumedForDay, dayKeyFor, getEntriesForDay, getProfile, type Profile } from './db';
+import { getDayContext } from './day-context';
 
 export type MealSuggestion = {
   name: string;
@@ -69,11 +70,23 @@ function buildPrompt(opts: {
     ? `They have almost nothing left in today's budget (${Math.round(remaining)} kcal remaining out of ${Math.round(budget)}). Suggest very light options, or something small enough to still fit.`
     : `They have ${Math.round(remaining)} kcal left today out of a ${Math.round(budget)} kcal budget (${Math.round(consumed)} kcal already logged).`;
 
+  const ctx = getDayContext();
+  const trainingLine = ctx.burn != null && ctx.burn > 0
+    ? `They trained today and burned about ${Math.round(ctx.burn)} kcal, which is already reflected in the budget above — favour protein to help them recover, but do not tell them to eat the exercise back twice.`
+    : '';
+  const fastLine = ctx.activeFast && !ctx.activeFast.reachedTarget
+    ? `IMPORTANT: they are ${ctx.activeFast.elapsedHours}h into a ${ctx.activeFast.targetHours}h fast with about ${Math.max(0, Math.round(ctx.activeFast.targetHours - ctx.activeFast.elapsedHours))}h left. Frame these as meals to break the fast with LATER, and prefer options that are gentle on an empty stomach and high in protein.`
+    : ctx.activeFast?.reachedTarget
+      ? 'They have just passed their fasting target, so these are meals to break the fast with: gentle on an empty stomach and protein-forward.'
+      : '';
+
   return `You are a nutrition assistant inside a calorie-tracking app. Suggest what the user could eat next, right now.
 
 ${remainingLine}
 ${goalLine(goal)}
 ${eatenLine}
+${trainingLine}
+${fastLine}
 
 Suggest exactly ${count} distinct, real, simple meal ideas a home cook could actually make (or easily buy) that fit within roughly the remaining calories for a single meal — a little under is great, a little over is fine, but never wildly over the remaining budget. Prefer whole, simple foods over fussy recipes, and don't repeat what they already ate today. For each meal give a one-sentence blurb explaining why it fits their remaining calories and goal, and list 3 to 6 short ingredient names (no quantities, keep them short, e.g. "chicken breast" not "200g grilled chicken breast").`;
 }

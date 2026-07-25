@@ -1,6 +1,8 @@
-// The feed: compose a share-card for a meal or the whole day, preview the
-// captured PNG, share it or post it to the local feed below. See lib/social.ts
-// for why "feed" today means "this device only."
+// Your wall: compose a share-card for a meal or the whole day, preview the
+// captured PNG, and either send it out through the OS share sheet (the whole
+// point) or keep a copy on this screen. See lib/social.ts for why "wall"
+// means "this device only, nobody else can see it" — that story is also told
+// to the user directly in the explainer card below, not just in a comment.
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -11,6 +13,7 @@ import { BigButton, Card, Grain, IconButton, ScreenHeader } from '@/components/u
 import { EntryCard } from '@/components/entry-card';
 import { Icon } from '@/components/icons';
 import { DayShareCard, MealShareCard, type DaySharePayload } from '@/components/share-card';
+import { getDayContext } from '@/lib/day-context';
 import { addPost, captureCard, deletePost, getPosts, shareImage, type Post } from '@/lib/social';
 import {
   consumedForDay, dayKeyFor, daySummaries, getEntriesForDay, getProfile, type Entry, type Profile,
@@ -70,15 +73,22 @@ function buildDaySummary(profile: Profile): DaySharePayload {
   const fatG = done.reduce((a, e) => a + (e.fatG * e.eatenPct) / 100, 0);
   const photos = entries.filter(e => e.photoUri).map(e => e.photoUri as string).slice(0, 4);
   const dateLabel = new Date().toLocaleDateString(localeTag(), { weekday: 'long', day: 'numeric', month: 'long' });
+  // Pull the day's training and fasting from the shared day context so the
+  // shared card tells the whole story, not just what was eaten. The budget
+  // comes from there too, since tracked exercise raises it.
+  const ctx = getDayContext(dayKey);
   return {
     dayKey,
     dateLabel,
     consumed: consumedForDay(dayKey),
-    budget: profile.dailyBudgetKcal,
+    budget: ctx.budget || profile.dailyBudgetKcal,
     proteinG, carbsG, fatG,
     mealCount: done.length,
     streak: computeStreak(profile),
     photos,
+    burn: ctx.burn,
+    steps: ctx.steps,
+    fastingHours: ctx.fastingHours,
   };
 }
 
@@ -97,14 +107,22 @@ function relativeTime(iso: string): string {
 function PostRow({ post, onDelete }: { post: Post; onDelete: (id: number) => void }) {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
+
+  const onShare = async () => {
+    try {
+      await shareImage(post.imageUri, post.caption);
+    } catch {
+      Alert.alert('Could not share', 'Sharing failed, but the image is still saved to your wall.');
+    }
+  };
+
   return (
     <Card style={styles.postCard}>
       <Image source={{ uri: post.imageUri }} style={styles.postImage} resizeMode="cover" />
-      <View style={styles.postFooter}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.postCaption} numberOfLines={2}>{post.caption}</Text>
-          <Text style={styles.postTime}>{relativeTime(post.createdAt)}</Text>
-        </View>
+      <Text style={styles.postCaption} numberOfLines={2}>{post.caption}</Text>
+      <Text style={styles.postTime}>{relativeTime(post.createdAt)}</Text>
+      <View style={styles.postActions}>
+        <BigButton label="Share" icon="share" onPress={onShare} style={{ flex: 1 }} />
         <IconButton icon="trash" onPress={() => onDelete(post.id)} />
       </View>
     </Card>
@@ -207,7 +225,7 @@ export default function FeedScreen() {
     try {
       await shareImage(preview.uri, preview.caption);
     } catch {
-      Alert.alert('Could not share', 'Sharing failed, but the image is still ready to post to your feed.');
+      Alert.alert('Could not share', 'Sharing failed, but the image is still ready to save to your wall.');
     }
   };
 
@@ -221,12 +239,12 @@ export default function FeedScreen() {
       imageUri: preview.uri,
     });
     loadPosts();
-    setConfirmMsg('Posted to your feed.');
+    setConfirmMsg('Saved to your wall.');
     setPreview(null);
   };
 
   const onDeletePost = (id: number) => {
-    Alert.alert('Delete post', 'Remove this post from your feed?', [
+    Alert.alert('Delete post', 'Remove this from your wall?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => { deletePost(id); loadPosts(); } },
     ]);
@@ -235,7 +253,11 @@ export default function FeedScreen() {
   return (
     <View style={[styles.root, { paddingTop: insets.top + 10 }]}>
       <Grain />
-      <ScreenHeader title="Feed" left={<IconButton icon="back" onPress={() => router.back()} />} />
+      <ScreenHeader
+        title="Your Wall"
+        left={<IconButton icon="back" onPress={() => router.back()} />}
+        right={<IconButton icon="hand" onPress={() => router.push('/profile')} />}
+      />
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }}>
         {confirmMsg && (
@@ -245,9 +267,22 @@ export default function FeedScreen() {
           </View>
         )}
 
+        <Card style={styles.explainer}>
+          <View style={styles.explainerHead}>
+            <Icon name="hand" size={16} color={C.signal} weight={1.9} />
+            <Text style={styles.explainerTitle}>This wall is just for you</Text>
+          </View>
+          <Text style={styles.explainerText}>
+            Everything you make here stays on this phone — there is no public feed and nobody else can
+            see it. The point is the image: tap Share to send a meal or your day straight to Instagram,
+            WhatsApp, or wherever your people actually are.
+          </Text>
+          <Text style={styles.explainerNote}>Coming soon: follow friends.</Text>
+        </Card>
+
         <Card style={styles.composer}>
-          <Text style={styles.composerTitle}>Share your progress</Text>
-          <Text style={styles.composerSub}>Turn a meal or your whole day into an image worth posting.</Text>
+          <Text style={styles.composerTitle}>Make something shareable</Text>
+          <Text style={styles.composerSub}>Turn a meal or your whole day into an image worth sending.</Text>
           <View style={styles.composerActions}>
             <BigButton label="Share a meal" icon="cutlery" onPress={openMealPicker} style={{ flex: 1 }} />
             <BigButton label="Share my day" icon="chart" kind="ghost" onPress={shareDay} style={{ flex: 1 }} />
@@ -255,7 +290,7 @@ export default function FeedScreen() {
         </Card>
 
         <View style={styles.feedHead}>
-          <Text style={styles.feedHeadTitle}>YOUR FEED</Text>
+          <Text style={styles.feedHeadTitle}>YOUR WALL</Text>
           <View style={styles.rule} />
         </View>
 
@@ -264,10 +299,10 @@ export default function FeedScreen() {
             <View style={styles.emptyIcon}>
               <Icon name="share" size={24} color={C.faint} weight={1.6} />
             </View>
-            <Text style={styles.emptyTitle}>Nothing shared yet</Text>
+            <Text style={styles.emptyTitle}>Nothing on your wall yet</Text>
             <Text style={styles.emptyText}>
-              This feed lives on your device only. Share a meal or your day above, then post it here to
-              keep a record — a feed you share with friends is coming next.
+              Posts stay on this device only, for your own record. Share a meal or your day above to make
+              an image, then keep a copy here if you want one.
             </Text>
           </View>
         ) : (
@@ -316,8 +351,8 @@ export default function FeedScreen() {
             <ScrollView contentContainerStyle={{ paddingHorizontal: 16, alignItems: 'center', paddingBottom: 12 }}>
               {preview && <Image source={{ uri: preview.uri }} style={styles.previewImage} resizeMode="contain" />}
               <View style={styles.previewActions}>
-                <BigButton label="Share" icon="share" onPress={doShare} style={{ flex: 1 }} />
-                <BigButton label="Post to my feed" icon="plus" kind="ghost" onPress={doPost} style={{ flex: 1 }} />
+                <BigButton label="Share" icon="share" onPress={doShare} style={{ flex: 1.4 }} />
+                <BigButton label="Save to my wall" icon="plus" kind="ghost" onPress={doPost} style={{ flex: 1 }} />
               </View>
             </ScrollView>
           </View>
@@ -336,6 +371,14 @@ const makeStyles = (C: Palette) => StyleSheet.create({
     paddingVertical: 10, paddingHorizontal: 14, marginBottom: 14,
   },
   confirmText: { fontFamily: F.mono, fontSize: 12, color: C.onSignal, letterSpacing: 0.3 },
+
+  explainer: { marginBottom: 16, backgroundColor: C.signalDim, borderColor: C.signal },
+  explainerHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  explainerTitle: { fontFamily: F.heading, fontSize: 15.5, color: C.ink, letterSpacing: -0.2 },
+  explainerText: { fontSize: 13.5, color: C.muted, lineHeight: 19 },
+  explainerNote: {
+    fontFamily: F.mono, fontSize: 10.5, letterSpacing: 0.6, color: C.faint, marginTop: 12,
+  },
 
   composer: { marginBottom: 22 },
   composerTitle: { fontFamily: F.heading, fontSize: 18, color: C.ink, marginBottom: 6, letterSpacing: -0.3 },
@@ -358,11 +401,11 @@ const makeStyles = (C: Palette) => StyleSheet.create({
 
   postCard: { padding: 12, marginBottom: 14 },
   postImage: { width: '100%', aspectRatio: 0.8, borderRadius: radius.tile, backgroundColor: C.raised, marginBottom: 10 },
-  postFooter: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   postCaption: { fontSize: 14, color: C.ink, fontWeight: '600', lineHeight: 19 },
   postTime: {
     fontFamily: F.mono, fontSize: 9.5, letterSpacing: 1, textTransform: 'uppercase', color: C.faint, marginTop: 5,
   },
+  postActions: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
 
   offscreen: { position: 'absolute', left: -9999, top: 0, opacity: 1 },
 

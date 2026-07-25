@@ -19,7 +19,7 @@ import { Icon } from '@/components/icons';
 import { BigButton, Card, Chip } from '@/components/ui';
 import { lookupBarcode, logScannedProduct, type ProductLookup } from '@/lib/barcode';
 import { UPLOAD_JPEG_QUALITY, UPLOAD_WIDTH } from '@/lib/config';
-import { identifyProductByPhoto, saveProduct, type AiPhotoProduct } from '@/lib/food-db';
+import { identifyProductByPhoto, isLiquidProduct, saveProduct, type AiPhotoProduct } from '@/lib/food-db';
 import { fmtKcal, mealLabel, mealTypeForNow } from '@/lib/nutrition';
 import { useStore } from '@/lib/store';
 
@@ -27,11 +27,32 @@ const SOURCE_LABEL: Record<string, string> = {
   local: 'Saved locally',
   off: 'Open Food Facts',
   ai: 'Read from label',
+  user: 'Corrected by you',
 };
 
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack', 'drink'] as const;
 const GRAM_STEP = 10;
+const ML_STEP = 50;
 const BARCODE_TYPES = ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128'] as const;
+
+// Sensible defaults when we don't know the product's actual serving/package
+// size: a standard-ish single bottle for drinks, a round hundred for solids.
+// NOT 500 — that was the old AI-guessed fallback that caused a 250ml/3kcal
+// bottle to be logged as if it were 500g of something else entirely.
+const DEFAULT_LIQUID_ML = 330;
+const DEFAULT_SOLID_G = 100;
+
+const LIQUID_QUICK_SIZES = [250, 330, 500, 1000];
+const SOLID_QUICK_SIZES = [30, 100, 200];
+
+/** Known serving size if we have one, else the liquid/solid default above. */
+function defaultPortion(p: {
+  name: string; brand: string | null; kcalPer100g: number;
+  proteinPer100g: number; fatPer100g: number; servingGrams: number | null;
+}): number {
+  if (p.servingGrams && p.servingGrams > 0) return Math.round(p.servingGrams);
+  return isLiquidProduct(p.name, p.brand, p) ? DEFAULT_LIQUID_ML : DEFAULT_SOLID_G;
+}
 
 /** Wide viewfinder — barcodes are horizontal, unlike the photo screen's frame. */
 function Frame() {
@@ -68,6 +89,13 @@ export default function ScanScreen() {
   const [manualName, setManualName] = useState('');
   const [manualKcal, setManualKcal] = useState('');
 
+  // Editable copies of a FOUND product's name/kcal (barcode match or AI label
+  // read) — pre-filled from the lookup, but the user can correct either one
+  // right here instead of being stuck with a wrong match or a wrong number.
+  const [foundName, setFoundName] = useState('');
+  const [foundKcal, setFoundKcal] = useState('');
+  const kcalInputRef = useRef<TextInput>(null);
+
   // AI label-photo fallback: only reachable once a barcode lookup comes back
   // empty. 'idle' -> 'capturing' (shutter) -> 'analyzing' (Gemini) -> 'done' | 'error'.
   const [aiState, setAiState] = useState<'idle' | 'capturing' | 'analyzing' | 'done' | 'error'>('idle');
@@ -83,6 +111,8 @@ export default function ScanScreen() {
     setGrams('100');
     setManualName('');
     setManualKcal('');
+    setFoundName('');
+    setFoundKcal('');
     setAiState('idle');
     setAiResult(null);
   };
@@ -113,7 +143,9 @@ export default function ScanScreen() {
       }
       setAiResult(result);
       setAiState('done');
-      setGrams(String(result.servingGrams && result.servingGrams > 0 ? Math.round(result.servingGrams) : 100));
+      setFoundName(result.name);
+      setFoundKcal(String(result.kcalPer100g));
+      setGrams(String(defaultPortion(result)));
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
       setAiState('error');
@@ -133,7 +165,9 @@ export default function ScanScreen() {
         setProduct(res);
         setLoading(false);
         if (res.found) {
-          setGrams(String(res.servingGrams && res.servingGrams > 0 ? Math.round(res.servingGrams) : 100));
+          setFoundName(res.name);
+          setFoundKcal(String(res.kcalPer100g));
+          setGrams(String(defaultPortion(res)));
         }
       })
       .catch(() => {
@@ -167,69 +201,112 @@ export default function ScanScreen() {
   const manualKcalNum = parseFloat(manualKcal.replace(',', '.'));
   const manualValid = manualName.trim().length > 0 && isFinite(manualKcalNum) && manualKcalNum > 0;
 
-  // When the lookup came back empty, the AI label read (once available) or
-  // the manually-typed fields (once valid) stand in for the product so the
-  // rest of the screen — grams, live total, the Log button — works exactly
-  // the same as a found product.
-  const effectiveProduct: ProductLookup | null =
-    product && !product.found
-      ? aiResult
-        ? {
-            found: true,
-            name: aiResult.name,
-            brand: aiResult.brand,
-            kcalPer100g: aiResult.kcalPer100g,
-            proteinPer100g: aiResult.proteinPer100g,
-            carbsPer100g: aiResult.carbsPer100g,
-            fatPer100g: aiResult.fatPer100g,
-            sugarPer100g: aiResult.sugarPer100g,
-            servingGrams: aiResult.servingGrams,
-            source: 'ai',
-          }
-        : manualValid
-          ? {
-              found: true,
-              name: manualName.trim(),
-              brand: null,
-              kcalPer100g: manualKcalNum,
-              proteinPer100g: 0,
-              carbsPer100g: 0,
-              fatPer100g: 0,
-              sugarPer100g: 0,
-              servingGrams: null,
-            }
-          : null
-      : product;
+  // A real lookup (barcode match or AI label read) — as opposed to manual
+  // entry, which never goes through here. Kept separate from
+  // `effectiveProduct` below so onLog can diff the user's edits against it.
+  const baseFound: Extract<ProductLookup, { found: true }> | null =
+    product?.found ? product : aiResult
+      ? {
+          found: true,
+          name: aiResult.name,
+          brand: aiResult.brand,
+          kcalPer100g: aiResult.kcalPer100g,
+          proteinPer100g: aiResult.proteinPer100g,
+          carbsPer100g: aiResult.carbsPer100g,
+          fatPer100g: aiResult.fatPer100g,
+          sugarPer100g: aiResult.sugarPer100g,
+          servingGrams: aiResult.servingGrams,
+          source: 'ai',
+        }
+      : null;
+
+  const foundKcalNum = parseFloat(foundKcal.replace(',', '.'));
+  const foundKcalValid = isFinite(foundKcalNum) && foundKcalNum > 0;
+
+  // When the lookup came back empty, the manually-typed fields (once valid)
+  // stand in for the product so the rest of the screen — grams, live total,
+  // the Log button — works exactly the same as a found product. When it came
+  // back non-empty, the user's edits to name/kcal (pre-filled from the
+  // lookup, editable right in this sheet) win over the raw lookup values.
+  const effectiveProduct: ProductLookup | null = baseFound
+    ? {
+        ...baseFound,
+        name: foundName.trim() || baseFound.name,
+        kcalPer100g: foundKcalValid ? foundKcalNum : baseFound.kcalPer100g,
+      }
+    : manualValid
+      ? {
+          found: true,
+          name: manualName.trim(),
+          brand: null,
+          kcalPer100g: manualKcalNum,
+          proteinPer100g: 0,
+          carbsPer100g: 0,
+          fatPer100g: 0,
+          sugarPer100g: 0,
+          servingGrams: null,
+        }
+      : null;
+
+  // Drink vs. food only changes the unit LABEL (g -> ml) shown below; the
+  // maths is unchanged (1 ml ~= 1 g here). Macros are only passed to the
+  // heuristic when they're real (a lookup), not manual entry's zeroed
+  // placeholders, which would otherwise misread e.g. a low-kcal solid as a drink.
+  const liquid = effectiveProduct
+    ? isLiquidProduct(effectiveProduct.name, effectiveProduct.brand, baseFound ? effectiveProduct : undefined)
+    : isLiquidProduct(manualName, null);
+  const unit = liquid ? 'ml' : 'g';
+  const per100Label = liquid ? 'Per 100 ml' : 'Per 100g';
 
   const totalKcal =
     effectiveProduct?.found && validGrams ? (effectiveProduct.kcalPer100g * gramsNum) / 100 : 0;
   const canLog = !!effectiveProduct?.found && validGrams;
 
-  const adjustGrams = (delta: number) => {
+  const quickSizes: { label: string; value: number }[] = (liquid ? LIQUID_QUICK_SIZES : SOLID_QUICK_SIZES)
+    .map(v => ({ label: `${v} ${unit}`, value: v }));
+  if (!liquid && baseFound?.servingGrams && baseFound.servingGrams > 0) {
+    const pkg = Math.round(baseFound.servingGrams);
+    if (!SOLID_QUICK_SIZES.includes(pkg)) quickSizes.push({ label: `Package (${pkg} g)`, value: pkg });
+  }
+
+  // Liquids step in bigger increments (50ml) than solids (10g) — a bottle is
+  // measured in swigs, not single grams.
+  const adjustGrams = (sign: 1 | -1) => {
+    const step = liquid ? ML_STEP : GRAM_STEP;
     const base = isFinite(gramsNum) ? gramsNum : 0;
-    const next = Math.max(GRAM_STEP, Math.round(base + delta));
+    const next = Math.max(step, Math.round(base + sign * step));
     setGrams(String(next));
     Haptics.selectionAsync();
   };
 
   const onLog = () => {
     if (!canLog || !effectiveProduct?.found) return;
-    // AI-read labels aren't in any cache yet — save them keyed by the
-    // barcode that triggered the fallback so the next scan is an instant hit.
-    if (effectiveProduct.source === 'ai' && scannedCode) {
-      saveProduct({
-        barcode: scannedCode,
-        name: effectiveProduct.name,
-        brand: effectiveProduct.brand,
-        kcalPer100g: effectiveProduct.kcalPer100g,
-        proteinPer100g: effectiveProduct.proteinPer100g,
-        carbsPer100g: effectiveProduct.carbsPer100g,
-        fatPer100g: effectiveProduct.fatPer100g,
-        sugarPer100g: effectiveProduct.sugarPer100g,
-        servingGrams: effectiveProduct.servingGrams,
-        source: 'ai',
-      });
+
+    if (baseFound && scannedCode) {
+      const nameChanged = effectiveProduct.name.trim() !== baseFound.name.trim();
+      const kcalChanged = effectiveProduct.kcalPer100g !== baseFound.kcalPer100g;
+      // AI-read labels aren't in any cache yet — save them keyed by the
+      // barcode that triggered the fallback so the next scan is an instant
+      // hit. A found product only gets re-saved when the user actually
+      // corrected something, and then it's saved as 'user' so it visibly
+      // wins over a plain cached OFF row on the next scan (see food-db's
+      // resolveBarcode: one row per barcode, last write wins).
+      if (baseFound.source === 'ai' || nameChanged || kcalChanged) {
+        saveProduct({
+          barcode: scannedCode,
+          name: effectiveProduct.name,
+          brand: effectiveProduct.brand,
+          kcalPer100g: effectiveProduct.kcalPer100g,
+          proteinPer100g: effectiveProduct.proteinPer100g,
+          carbsPer100g: effectiveProduct.carbsPer100g,
+          fatPer100g: effectiveProduct.fatPer100g,
+          sugarPer100g: effectiveProduct.sugarPer100g,
+          servingGrams: effectiveProduct.servingGrams,
+          source: (nameChanged || kcalChanged) ? 'user' : 'ai',
+        });
+      }
     }
+
     logScannedProduct(effectiveProduct, gramsNum, mealType);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     refresh();
@@ -240,8 +317,13 @@ export default function ScanScreen() {
   const gramsAndMealSection = (
     <>
       <Text style={styles.fieldLabel}>Amount</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 4 }}>
+        {quickSizes.map(o => (
+          <Chip key={o.label} label={o.label} selected={gramsNum === o.value} onPress={() => setGrams(String(o.value))} />
+        ))}
+      </View>
       <Card style={styles.amountCard}>
-        <Pressable onPress={() => adjustGrams(-GRAM_STEP)} style={styles.stepBtn} hitSlop={8}>
+        <Pressable onPress={() => adjustGrams(-1)} style={styles.stepBtn} hitSlop={8}>
           <Text style={styles.stepBtnText}>−</Text>
         </Pressable>
         <View style={styles.gramsInputWrap}>
@@ -252,9 +334,9 @@ export default function ScanScreen() {
             style={styles.gramsInput}
             textAlign="center"
           />
-          <Text style={styles.gramsUnit}>g</Text>
+          <Text style={styles.gramsUnit}>{unit}</Text>
         </View>
-        <Pressable onPress={() => adjustGrams(GRAM_STEP)} style={styles.stepBtn} hitSlop={8}>
+        <Pressable onPress={() => adjustGrams(1)} style={styles.stepBtn} hitSlop={8}>
           <Icon name="plus" size={16} color={C.ink} weight={2.2} />
         </Pressable>
       </Card>
@@ -324,34 +406,47 @@ export default function ScanScreen() {
               </View>
             ) : (
               <>
-                {product?.found ? (
+                {baseFound ? (
                   <>
                     <View style={styles.productHead}>
-                      {product.source ? (
-                        <Text style={styles.sourceBadge}>{SOURCE_LABEL[product.source] ?? product.source}</Text>
+                      {baseFound.source ? (
+                        <Text style={styles.sourceBadge}>{SOURCE_LABEL[baseFound.source] ?? baseFound.source}</Text>
                       ) : null}
-                      <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
-                      {product.brand ? <Text style={styles.productBrand}>{product.brand}</Text> : null}
+                      <TextInput
+                        value={foundName}
+                        onChangeText={setFoundName}
+                        style={styles.productNameInput}
+                        placeholder="Product name"
+                        placeholderTextColor={C.faint}
+                      />
+                      {baseFound.brand ? <Text style={styles.productBrand}>{baseFound.brand}</Text> : null}
                     </View>
-                    <Card style={{ marginBottom: 14 }}>
-                      <Text style={styles.fieldLabel}>Per 100g</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-                        <Text style={styles.kcalReadout}>{fmtKcal(product.kcalPer100g)}</Text>
-                        <Text style={styles.kcalUnit}>kcal</Text>
+
+                    {baseFound.source === 'ai' ? (
+                      <View style={styles.cautionRow}>
+                        <Icon name="warn" size={14} color={C.danger} weight={1.8} />
+                        <Text style={styles.cautionText}>
+                          Read from a photo — this is a best-effort guess. Check the number below
+                          against the label.
+                        </Text>
                       </View>
-                    </Card>
-                  </>
-                ) : aiResult ? (
-                  <>
-                    <View style={styles.productHead}>
-                      <Text style={styles.sourceBadge}>{SOURCE_LABEL.ai}</Text>
-                      <Text style={styles.productName} numberOfLines={2}>{aiResult.name}</Text>
-                      {aiResult.brand ? <Text style={styles.productBrand}>{aiResult.brand}</Text> : null}
-                    </View>
+                    ) : null}
+
                     <Card style={{ marginBottom: 14 }}>
-                      <Text style={styles.fieldLabel}>Per 100g</Text>
+                      <View style={styles.per100Head}>
+                        <Text style={styles.fieldLabel}>{per100Label}</Text>
+                        <Pressable onPress={() => kcalInputRef.current?.focus()} hitSlop={8}>
+                          <Text style={styles.fixItText}>Wrong? Fix it</Text>
+                        </Pressable>
+                      </View>
                       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-                        <Text style={styles.kcalReadout}>{fmtKcal(aiResult.kcalPer100g)}</Text>
+                        <TextInput
+                          ref={kcalInputRef}
+                          value={foundKcal}
+                          onChangeText={setFoundKcal}
+                          keyboardType="decimal-pad"
+                          style={styles.kcalReadoutInput}
+                        />
                         <Text style={styles.kcalUnit}>kcal</Text>
                       </View>
                     </Card>
@@ -400,7 +495,7 @@ export default function ScanScreen() {
                         onChangeText={setManualName}
                         style={styles.input}
                       />
-                      <Text style={styles.fieldLabel}>Kcal per 100g</Text>
+                      <Text style={styles.fieldLabel}>{`Kcal per 100${unit === 'ml' ? ' ml' : 'g'}`}</Text>
                       <TextInput
                         placeholder="250"
                         placeholderTextColor={C.faint}
@@ -477,8 +572,18 @@ const makeStyles = (C: Palette) => StyleSheet.create({
 
   productHead: { marginBottom: 12 },
   productName: { fontFamily: F.heading, fontSize: 21, color: C.ink, letterSpacing: -0.4 },
+  productNameInput: {
+    fontFamily: F.heading, fontSize: 21, color: C.ink, letterSpacing: -0.4, padding: 0,
+  },
   productBrand: { fontSize: 13, color: C.muted, marginTop: 3 },
   sourceBadge: { ...label, color: C.signal, fontSize: 9.5, marginBottom: 6 },
+
+  cautionRow: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    paddingVertical: 10, paddingHorizontal: 12, marginBottom: 12, borderRadius: radius.button,
+    backgroundColor: C.raised, borderWidth: 1, borderColor: C.border,
+  },
+  cautionText: { flex: 1, fontSize: 12.5, color: C.muted, lineHeight: 17 },
 
   notFoundTitle: { fontFamily: F.heading, fontSize: 19, color: C.ink, marginBottom: 6 },
   notFoundBody: { fontSize: 13.5, color: C.muted, lineHeight: 19, marginBottom: 14 },
@@ -495,7 +600,10 @@ const makeStyles = (C: Palette) => StyleSheet.create({
   orText: { ...label, color: C.faint, fontSize: 9.5 },
 
   fieldLabel: { ...label, color: C.faint, marginBottom: 8 },
+  per100Head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  fixItText: { ...label, color: C.signal, fontSize: 9.5, marginBottom: 8 },
   kcalReadout: { fontFamily: F.mono, fontSize: 28, color: C.ink, letterSpacing: -0.6 },
+  kcalReadoutInput: { fontFamily: F.mono, fontSize: 28, color: C.ink, letterSpacing: -0.6, padding: 0, minWidth: 70 },
   totalReadout: { fontFamily: F.mono, fontSize: 30, color: C.signal, letterSpacing: -0.6 },
   kcalUnit: { fontFamily: F.monoLight, fontSize: 12, color: C.faint, textTransform: 'uppercase', letterSpacing: 1.2 },
 

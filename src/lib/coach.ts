@@ -4,7 +4,7 @@
 // of a photo + JSON schema.
 import * as SQLite from 'expo-sqlite';
 import { GEMINI_API_KEY, GEMINI_BASE, MODEL_FALLBACK, MODEL_PRIMARY } from './config';
-import { consumedForDay, dayKeyFor, getProfile } from './db';
+import { getDayContext, describeDayForAI } from './day-context';
 
 export type CoachRole = 'user' | 'assistant';
 
@@ -57,23 +57,20 @@ export function clearMessages(): void {
 const HISTORY_WINDOW = 20;
 
 function buildSystemPrompt(): string {
-  const profile = getProfile();
-  const dayKey = dayKeyFor(new Date());
-  const consumed = consumedForDay(dayKey);
-  const remaining = Math.round(profile.dailyBudgetKcal - consumed);
+  const ctx = getDayContext();
+  const profile = ctx.profile;
 
-  return `You are the in-app AI nutrition coach for SnapCal, a photo-based calorie tracking app. You chat with the user about their eating, their goals and their calorie budget.
+  return `You are the in-app AI nutrition coach for SnapCal, a photo-based calorie tracking app. You chat with the user about their eating, their goals, their training and their calorie budget.
 
 User context:
 - Sex: ${profile.sex}
 - Goal: ${profile.goal}${profile.goal !== 'maintain' ? ` at ${profile.paceKgPerWeek} kg/week` : ''}
-- Daily calorie budget: ${Math.round(profile.dailyBudgetKcal)} kcal
-- Consumed so far today: ${consumed} kcal
-- Remaining today: ${remaining} kcal
+${describeDayForAI(ctx)}
 
 Style:
 - Be friendly, encouraging and concise. Prefer short paragraphs or a tight bullet list over long essays.
-- Be practical: give concrete food, portion and timing suggestions tied to the user's remaining budget and goal.
+- Be practical: give concrete food, portion and timing suggestions tied to the user's remaining budget, their training and their goal.
+- If they are mid-fast, respect it: suggest zero-calorie options until the fast is due to end, and never nag them to eat during it.
 - Reference their numbers above when it's useful, but don't recite all of them every reply.
 - Never invent entries or numbers you weren't given.
 
