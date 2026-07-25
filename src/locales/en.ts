@@ -214,7 +214,7 @@ const en = {
   'conn.stravaDesc': 'Runs, rides and workouts, with calorie estimates.',
   'conn.stravaNotConfigured': 'This build was made without Strava API keys, so Strava can’t be connected. Rebuild with EXPO_PUBLIC_STRAVA_CLIENT_ID and EXPO_PUBLIC_STRAVA_CLIENT_SECRET set.',
   'conn.hc': 'Health Connect',
-  'conn.hcDesc': 'Steps and workouts from any Android fitness app (Google Fit, Garmin, Samsung Health…).',
+  'conn.hcDesc': 'Steps and workouts from any Android fitness app (Oura, Google Fit, Garmin, Samsung Health…).',
   'conn.hcUnavailable': 'Health Connect is not available on this phone. Install it from the Play Store and try again.',
   'conn.apple': 'Apple Health',
   'conn.appleDesc': 'Arrives together with the iOS version of SnapCal.',

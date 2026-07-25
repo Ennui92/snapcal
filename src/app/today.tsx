@@ -10,7 +10,8 @@ import { EntryCard } from '@/components/entry-card';
 import { Icon, type IconName } from '@/components/icons';
 import { Grain, IconButton } from '@/components/ui';
 import { TabBar } from '@/components/tab-bar';
-import { budgetForDay, burnedForRange } from '@/lib/activity';
+import { EnergyBalance, FastingStrip, MacroBars, macrosFor } from '@/components/day-dashboard';
+import { budgetForDay, burnedForRange, stepsForDay } from '@/lib/activity';
 import { retryPending } from '@/lib/analyzer';
 import { consumedForDay, dayKeyFor, daySummaries, getEntriesForDay, getProfile, type Profile, type Entry } from '@/lib/db';
 import { localeTag, t } from '@/lib/i18n';
@@ -67,6 +68,7 @@ export default function TodayScreen() {
   const [consumed, setConsumed] = useState(0);
   const [budget, setBudget] = useState(0);
   const [burn, setBurn] = useState<number | null>(null);
+  const [steps, setSteps] = useState(0);
   const [streak, setStreak] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const profile = getProfile();
@@ -78,9 +80,12 @@ export default function TodayScreen() {
     const b = budgetForDay(profile, day);
     setBudget(b.budget);
     setBurn(b.burn);
+    setSteps(stepsForDay(day));
     setStreak(streakDays(profile));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile.dailyBudgetKcal]);
+
+  const macros = useMemo(() => macrosFor(entries), [entries]);
 
   useFocusEffect(useCallback(() => { load(); }, [load, version]));
 
@@ -115,26 +120,34 @@ export default function TodayScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.signal} />}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }}
         ListHeaderComponent={
-          <View style={{ alignItems: 'center', marginBottom: 20 }}>
-            <BudgetRing consumed={consumed} budget={budget} />
-            {burn != null && burn > 0 && (
-              <Pressable onPress={() => router.push('/connections')} style={styles.burnRow}>
-                <Icon name="bolt" size={13} color={C.signal} weight={2} />
-                <Text style={styles.burnBonus}>{t('today.burnBonus', { kcal: fmtKcal(burn) })}</Text>
-              </Pressable>
-            )}
-            {streak > 0 && (
-              <View style={styles.streak}>
-                <Icon name="flame" size={14} color={C.ember} weight={1.9} />
-                <Text style={styles.streakText}>
-                  {streak === 1 ? t('today.streakOne') : t('today.streakMany', { n: streak })}
-                </Text>
-              </View>
-            )}
+          <View style={{ marginBottom: 20 }}>
+            <View style={{ alignItems: 'center' }}>
+              <BudgetRing consumed={consumed} budget={budget} />
+              {streak > 0 && (
+                <View style={styles.streak}>
+                  <Icon name="flame" size={14} color={C.ember} weight={1.9} />
+                  <Text style={styles.streakText}>
+                    {streak === 1 ? t('today.streakOne') : t('today.streakMany', { n: streak })}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* what you ate vs what you burned, and the net */}
+            <EnergyBalance consumed={consumed} burn={burn} steps={steps} />
+
+            {/* the day's shape, in colour */}
+            <MacroBars macros={macros} />
+
+            {/* fasting, visible instead of buried */}
+            <FastingStrip />
+
             <View style={styles.actions}>
               <Tab icon="scale" text="Scan" onPress={() => router.push('/scan')} />
-              <Tab icon="sparkle" text="Recipes" onPress={() => router.push('/recipes')} />
-              <Tab icon="clock" text="Fast" onPress={() => router.push('/fasting')} />
+              <Tab icon="bell" text="Voice" onPress={() => router.push('/add')} />
+              <Tab icon="sparkle" text="Coach" onPress={() => router.push('/coach')} />
+              <Tab icon="cutlery" text="Recipes" onPress={() => router.push('/recipes')} />
+              <Tab icon="clock" text="Fasting" onPress={() => router.push('/fasting')} />
               <Tab icon="plus" text={t('today.addManual')} onPress={() => router.push('/add')} />
             </View>
           </View>

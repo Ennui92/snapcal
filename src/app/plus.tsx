@@ -14,22 +14,23 @@ import { useStore } from '@/lib/store';
 
 const PLUS_PERKS = [
   'Unlimited AI photo scans',
+  'Voice logging: say it, it is logged',
+  'Barcode scanning with AI label reading',
   'Snappy, your AI nutrition coach',
   'Next-meal recipe suggestions',
-  'Barcode scanning',
-  'Voice logging',
-  'Full history + weight trend',
-  'Fasting insights',
-  'Strava, Health Connect & Oura sync',
-  'Social feed',
+  'Calories in vs out from Strava, Health Connect & Oura',
+  'Full history, weight trend & the streak heatmap',
+  'Fasting timer & insights',
+  'Photo journal and shareable meal cards',
   'Light & dark themes',
 ];
 
 const FREE_PERKS = [
   '3 AI photo scans a day',
   'Unlimited logging of foods you have already scanned',
+  'Barcode scans of products already in your catalogue',
   'Manual entries',
-  'Daily budget, streak, corrections',
+  'Daily budget, macros, streak, corrections',
   'Last 7 days of history',
 ];
 

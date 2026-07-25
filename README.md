@@ -18,7 +18,13 @@ Every calorie app dies the same death: too much typing. Search the food, pick th
 - A big slider fixes "I only ate half of it" in two seconds
 - Daily budget from your BMI/BMR and goal, computed once at setup: stay under the line and weight comes off
 - Gentle nudges if a day runs hot ("maybe a yogurt tonight"), strictness is yours to pick
-- Share your day/week/month as text
+- **Voice logging**: say "a Greek yogurt with honey and some grapes" and it is logged, portions estimated
+- **Barcode scanning that works outside the US/UK**: a cascade of your own catalogue → a bundled seed catalogue for your country (Greek supermarket products included) → country-aware Open Food Facts → an AI fallback that reads the nutrition label off a photo. Every answer is written back to the on-device catalogue, so it gets faster and works offline
+- **Calories in vs out**: connected fitness (Strava / Health Connect / Oura) charted against intake, with steps and the running net
+- **Photo journal**: your meals as a big, by-the-day visual diary, plus a list mode
+- **Fasting timer** on the dashboard: presets, live countdown, history
+- **Shareable meal and day cards**: a designed, branded image rather than a wall of text
+- Share your day/week/month as text or as a card
 - Your food diary never leaves the phone: no account, no cloud database, no analytics
 - Speaks English, Ελληνικά, Deutsch, Español and Français — picked automatically from the phone, changeable in settings; the AI describes meals in the same language
 - A ten-second demo inside onboarding plus first-launch coach marks on the camera, so nobody has to guess how it works

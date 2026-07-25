@@ -72,7 +72,15 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 160
         }
-      ]
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "SnapCal listens so you can log a meal by speaking it."
+        }
+      ],
+      "expo-sharing",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,

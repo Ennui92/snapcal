@@ -44,6 +44,37 @@ Appearance (Dark / Light / System, persisted). New palette system
 every screen migrated to the `makeStyles(C)` pattern (camera stays dark on
 purpose). Light uses a deep-green accent (lime is unreadable on white).
 
+### v0.6.0 — the competitive wave (2026-07-25)
+Built after blunt owner feedback on v0.5.0. Every item below was a specific
+complaint, not a nice-to-have:
+
+- **"Barcode scanning doesn't work for Greece."** It only queried Open Food
+  Facts' world endpoint, which is thin on Greek products. Replaced with a
+  cascade resolver: local catalogue cache → a bundled seed catalogue of common
+  Greek/EU supermarket products → country-aware Open Food Facts (`gr.` before
+  `world.`) → **AI fallback that reads the nutrition label from a photo**.
+  Everything resolved from any source is written into the on-device catalogue,
+  so it is instant and offline next time and the database grows per user.
+- **"Manual adding has no gallery button and no voice."** The add screen now
+  leads with *Speak it* (record → Gemini transcribes and extracts the items in
+  one call → editable confirm) and *From gallery* (pick an older photo, set the
+  day/time so it lands correctly, analysed in the background).
+- **"Fitness calories aren't integrated anywhere; daily summary only in
+  settings; lame and weak."** Today is now a real dashboard: calories **in vs
+  out vs net** from the connected fitness provider, steps, coloured macro bars
+  (protein/carbs/fat/sugar), and a live fasting strip.
+- **"No fasting mode."** It existed but was invisible. Now it is on the Today
+  dashboard (running timer or one-tap start) and in the quick actions.
+- **"Stats are lame and no colors."** Rebuilt with a real chart set.
+- **"Diary mode and photo diary mode, I don't see it."** New `/diary` with a
+  BeReal-style photo journal (hero + grid, time and kcal badges) and a list mode.
+- **"Social feed is just text."** Now posts a *meal* or a *day* as a designed,
+  branded share image, which is also the growth loop.
+- **Oura**: it reports through Google Health Connect, which the app already
+  reads. Now named explicitly in the connections copy (all 5 languages).
+- Navigation overhaul so none of this is buried: tab bar is Today · Photos ·
+  [Camera] · Stats · Feed, plus a quick-action row on Today.
+
 ### v0.4.0+ — feature wave part 2 (queued)
 Big feature push requested from competitor-app reference shots (Cal AI coach,
 SnapCalorie photo journal, MyFitnessPal voice logging). Sequenced by conflict

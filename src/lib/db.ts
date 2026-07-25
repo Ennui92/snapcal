@@ -403,6 +403,15 @@ export function trackedBurnForDay(dayKey: string): number | null {
   return row?.burn ?? null;
 }
 
+// Same "largest single source wins" rule as the burn queries, so two
+// providers reporting the same day don't double-count.
+export function trackedStepsForDay(dayKey: string): number {
+  const row = db.getFirstSync<{ steps: number | null }>(
+    'SELECT MAX(steps) steps FROM activity_days WHERE dayKey=?', dayKey,
+  );
+  return row?.steps ?? 0;
+}
+
 export function trackedBurnForRange(fromDayKey: string, toDayKey: string): Map<string, number> {
   const rows = db.getAllSync<{ dayKey: string; burn: number }>(
     'SELECT dayKey, MAX(activeKcal) burn FROM activity_days WHERE dayKey >= ? AND dayKey <= ? GROUP BY dayKey',

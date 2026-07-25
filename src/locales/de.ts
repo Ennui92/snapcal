@@ -200,7 +200,7 @@ const de: Record<keyof typeof en, string> = {
   'conn.stravaDesc': 'Läufe, Radfahrten und Workouts, mit Kalorienschätzungen.',
   'conn.stravaNotConfigured': 'Dieser Build wurde ohne Strava-API-Schlüssel erstellt, Strava kann sich nicht verbinden. Neu bauen mit EXPO_PUBLIC_STRAVA_CLIENT_ID und EXPO_PUBLIC_STRAVA_CLIENT_SECRET.',
   'conn.hc': 'Health Connect',
-  'conn.hcDesc': 'Schritte und Workouts aus jeder Android-Fitness-App (Google Fit, Garmin, Samsung Health…).',
+  'conn.hcDesc': 'Schritte und Workouts aus jeder Android-Fitness-App (Oura, Google Fit, Garmin, Samsung Health…).',
   'conn.hcUnavailable': 'Health Connect ist auf diesem Handy nicht verfügbar. Installiere es aus dem Play Store und versuch es erneut.',
   'conn.apple': 'Apple Health',
   'conn.appleDesc': 'Kommt zusammen mit der iOS-Version von SnapCal.',

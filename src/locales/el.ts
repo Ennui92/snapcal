@@ -200,7 +200,7 @@ const el: Record<keyof typeof en, string> = {
   'conn.stravaDesc': 'Τρέξιμο, ποδήλατο και προπονήσεις, με εκτιμήσεις θερμίδων.',
   'conn.stravaNotConfigured': 'Αυτό το build φτιάχτηκε χωρίς κλειδιά Strava API, οπότε το Strava δεν συνδέεται. Χρειάζεται rebuild με EXPO_PUBLIC_STRAVA_CLIENT_ID και EXPO_PUBLIC_STRAVA_CLIENT_SECRET.',
   'conn.hc': 'Health Connect',
-  'conn.hcDesc': 'Βήματα και προπονήσεις από οποιαδήποτε εφαρμογή fitness στο Android (Google Fit, Garmin, Samsung Health…).',
+  'conn.hcDesc': 'Βήματα και προπονήσεις από οποιαδήποτε εφαρμογή fitness στο Android (Oura, Google Fit, Garmin, Samsung Health…).',
   'conn.hcUnavailable': 'Το Health Connect δεν είναι διαθέσιμο σε αυτό το κινητό. Εγκατάστησέ το από το Play Store και δοκίμασε ξανά.',
   'conn.apple': 'Apple Health',
   'conn.appleDesc': 'Έρχεται μαζί με την έκδοση iOS του SnapCal.',

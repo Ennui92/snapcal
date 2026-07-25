@@ -1,6 +1,6 @@
 // Orchestrates the fitness providers and answers the one question the rest
 // of the app asks: "how much extra did the user burn on day X?"
-import { getMeta, setMeta, trackedBurnForDay, trackedBurnForRange, type Profile } from './db';
+import { getMeta, setMeta, trackedBurnForDay, trackedBurnForRange, trackedStepsForDay, type Profile } from './db';
 import { effectiveBudget } from './nutrition';
 import * as hc from './health-connect';
 import * as strava from './strava';
@@ -41,6 +41,13 @@ export function budgetForDay(profile: Profile, dayKey: string): { budget: number
 export function burnedForRange(fromDayKey: string, toDayKey: string): Map<string, number> {
   if (!anyProviderConnected() || !useTrackedActivity()) return new Map();
   return trackedBurnForRange(fromDayKey, toDayKey);
+}
+
+// Steps for a day across sources (largest single source wins, same rule the
+// burn aggregation uses, so two providers reporting the same day don't stack).
+export function stepsForDay(dayKey: string): number {
+  if (!anyProviderConnected()) return 0;
+  return trackedStepsForDay(dayKey);
 }
 
 export function lastSyncAt(): string | null {

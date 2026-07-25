@@ -200,7 +200,7 @@ const fr: Record<keyof typeof en, string> = {
   'conn.stravaDesc': 'Courses, sorties vélo et entraînements, avec estimations de calories.',
   'conn.stravaNotConfigured': 'Cette build a été faite sans clés API Strava, la connexion est impossible. Recompile avec EXPO_PUBLIC_STRAVA_CLIENT_ID et EXPO_PUBLIC_STRAVA_CLIENT_SECRET.',
   'conn.hc': 'Health Connect',
-  'conn.hcDesc': 'Pas et entraînements de n’importe quelle app de fitness Android (Google Fit, Garmin, Samsung Health…).',
+  'conn.hcDesc': 'Pas et entraînements de n’importe quelle app de fitness Android (Oura, Google Fit, Garmin, Samsung Health…).',
   'conn.hcUnavailable': 'Health Connect n’est pas disponible sur ce téléphone. Installe-le depuis le Play Store et réessaie.',
   'conn.apple': 'Apple Health',
   'conn.appleDesc': 'Arrive avec la version iOS de SnapCal.',

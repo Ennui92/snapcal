@@ -18,12 +18,12 @@ import { Icon, type IconName } from '@/components/icons';
 type Item = { route: string; icon: IconName; label: string };
 
 const LEFT: Item[] = [
-  { route: '/today', icon: 'cutlery', label: 'Diary' },
-  { route: '/stats', icon: 'chart', label: 'Stats' },
+  { route: '/today', icon: 'cutlery', label: 'Today' },
+  { route: '/diary', icon: 'gallery', label: 'Photos' },
 ];
 const RIGHT: Item[] = [
-  { route: '/coach', icon: 'sparkle', label: 'Coach' },
-  { route: '/settings', icon: 'settings', label: 'More' },
+  { route: '/stats', icon: 'chart', label: 'Stats' },
+  { route: '/feed', icon: 'share', label: 'Feed' },
 ];
 
 function TabItem({ item, active }: { item: Item; active: boolean }) {
