@@ -11,8 +11,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system/legacy';
 import { C, F, label, radius } from '@/constants/theme';
 import { CameraTour } from '@/components/camera-tour';
-import { Icon } from '@/components/icons';
+import { Icon, type IconName } from '@/components/icons';
 import { BigButton } from '@/components/ui';
+import { TabBar } from '@/components/tab-bar';
 import { budgetForDay, syncActivity } from '@/lib/activity';
 import { analyzeEntry, retryPending } from '@/lib/analyzer';
 import { consumedForDay, dayKeyFor, getEntriesForDay, getMeta, insertEntry, setMeta, type Entry } from '@/lib/db';
@@ -29,6 +30,16 @@ async function persistPhoto(tempUri: string, copy = false): Promise<string> {
   if (copy) await FileSystem.copyAsync({ from: tempUri, to: dest });
   else await FileSystem.moveAsync({ from: tempUri, to: dest });
   return dest;
+}
+
+/** One of the other ways to log, sitting right on the camera. */
+function QuickAction({ icon, label: text, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={styles.quickBtn} hitSlop={6}>
+      <Icon name={icon} size={16} color={C.ink} weight={2} />
+      <Text style={styles.quickText}>{text}</Text>
+    </Pressable>
+  );
 }
 
 /** Viewfinder brackets. Costs nothing, and makes the screen read as a camera. */
@@ -183,27 +194,40 @@ export default function CameraScreen() {
         </Animated.View>
       )}
 
-      {/* bottom controls */}
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 22 }]}>
-        <Pressable onPress={() => router.push('/today')} style={styles.sideBtn}>
-          {lastEntry?.photoUri ? (
-            <Image source={{ uri: lastEntry.photoUri }} style={styles.sideThumb} />
-          ) : (
-            <Icon name="chart" size={20} color={C.ink} />
-          )}
-          {lastEntry && lastEntry.status !== 'done' && <View style={styles.statusDot} />}
-        </Pressable>
+      {/* bottom stack: other ways to log, the shutter, then the nav bar. The
+          camera used to be a dead end — it could only reach Today, so every
+          other feature was invisible from the screen the app opens on. */}
+      <View style={styles.bottomStack}>
+        <View style={styles.quickRow}>
+          <QuickAction icon="scale" label="Scan" onPress={() => router.push('/scan')} />
+          <QuickAction icon="bell" label="Speak" onPress={() => router.push('/add')} />
+          <QuickAction icon="sparkle" label="Coach" onPress={() => router.push('/coach')} />
+          <QuickAction icon="clock" label="Fast" onPress={() => router.push('/fasting')} />
+        </View>
 
-        <Animated.View style={shutterStyle}>
-          <Pressable onPress={onShutter} style={styles.shutter} disabled={busy}>
-            <View style={styles.shutterRing} />
-            <View style={[styles.shutterInner, busy && { opacity: 0.5 }]} />
+        <View style={styles.bottomBar}>
+          <Pressable onPress={() => router.push('/today')} style={styles.sideBtn}>
+            {lastEntry?.photoUri ? (
+              <Image source={{ uri: lastEntry.photoUri }} style={styles.sideThumb} />
+            ) : (
+              <Icon name="chart" size={20} color={C.ink} />
+            )}
+            {lastEntry && lastEntry.status !== 'done' && <View style={styles.statusDot} />}
           </Pressable>
-        </Animated.View>
 
-        <Pressable onPress={onPickFromGallery} style={styles.sideBtn}>
-          <Icon name="gallery" size={20} color={C.ink} />
-        </Pressable>
+          <Animated.View style={shutterStyle}>
+            <Pressable onPress={onShutter} style={styles.shutter} disabled={busy}>
+              <View style={styles.shutterRing} />
+              <View style={[styles.shutterInner, busy && { opacity: 0.5 }]} />
+            </Pressable>
+          </Animated.View>
+
+          <Pressable onPress={onPickFromGallery} style={styles.sideBtn}>
+            <Icon name="gallery" size={20} color={C.ink} />
+          </Pressable>
+        </View>
+
+        <TabBar overlay />
       </View>
 
       {/* hint */}
@@ -251,10 +275,21 @@ const styles = StyleSheet.create({
   budgetTrack: { height: 2.5, backgroundColor: 'rgba(255,255,255,0.15)', marginTop: 7, overflow: 'hidden' },
   budgetFill: { height: '100%' },
 
+  bottomStack: { position: 'absolute', bottom: 0, left: 0, right: 0 },
+  quickRow: {
+    flexDirection: 'row', justifyContent: 'center', gap: 8,
+    paddingHorizontal: 16, marginBottom: 14,
+  },
+  quickBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: C.overlay, borderRadius: radius.button,
+    paddingVertical: 9, paddingHorizontal: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+  },
+  quickText: { ...label, fontSize: 9, color: C.ink },
   bottomBar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around',
-    paddingTop: 18,
+    paddingTop: 4, paddingBottom: 16,
   },
   shutter: { width: 86, height: 86, alignItems: 'center', justifyContent: 'center' },
   shutterRing: {

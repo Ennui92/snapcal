@@ -45,7 +45,12 @@ function TabItem({ item, active }: { item: Item; active: boolean }) {
   );
 }
 
-export function TabBar() {
+/**
+ * `overlay` renders the bar translucent so it can sit on top of the live camera
+ * preview without hiding it. The camera is the launch screen, so without a bar
+ * there every other feature was unreachable from the place people start.
+ */
+export function TabBar({ overlay = false }: { overlay?: boolean } = {}) {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
@@ -53,7 +58,7 @@ export function TabBar() {
   const isActive = (route: string) => path === route || (route === '/today' && path === '/');
 
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+    <View style={[styles.bar, overlay && styles.barOverlay, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       {LEFT.map(it => <TabItem key={it.route} item={it} active={isActive(it.route)} />)}
 
       {/* centre: back to the camera */}
@@ -81,6 +86,12 @@ const makeStyles = (C: Palette) => StyleSheet.create({
     backgroundColor: C.card,
     borderTopWidth: 1,
     borderTopColor: C.border,
+  },
+  // Over the camera preview: dark scrim instead of a solid surface, so the
+  // viewfinder stays visible behind the bar.
+  barOverlay: {
+    backgroundColor: 'rgba(4,4,6,0.82)',
+    borderTopColor: 'rgba(255,255,255,0.10)',
   },
   item: { flex: 1, alignItems: 'center', gap: 4, paddingTop: 4 },
   label: { ...label, fontSize: 8.5 },

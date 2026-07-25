@@ -11,7 +11,7 @@ import { Icon, type IconName } from '@/components/icons';
 import { Grain, IconButton } from '@/components/ui';
 import { TabBar } from '@/components/tab-bar';
 import { EnergyBalance, FastingStrip, MacroBars, macrosFor } from '@/components/day-dashboard';
-import { budgetForDay, burnedForRange, stepsForDay } from '@/lib/activity';
+import { anyProviderConnected, budgetForDay, burnedForRange, stepsForDay } from '@/lib/activity';
 import { retryPending } from '@/lib/analyzer';
 import { consumedForDay, dayKeyFor, daySummaries, getEntriesForDay, getProfile, type Profile, type Entry } from '@/lib/db';
 import { localeTag, t } from '@/lib/i18n';
@@ -69,6 +69,7 @@ export default function TodayScreen() {
   const [budget, setBudget] = useState(0);
   const [burn, setBurn] = useState<number | null>(null);
   const [steps, setSteps] = useState(0);
+  const [fitConnected, setFitConnected] = useState(false);
   const [streak, setStreak] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const profile = getProfile();
@@ -81,6 +82,7 @@ export default function TodayScreen() {
     setBudget(b.budget);
     setBurn(b.burn);
     setSteps(stepsForDay(day));
+    setFitConnected(anyProviderConnected());
     setStreak(streakDays(profile));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile.dailyBudgetKcal]);
@@ -124,17 +126,18 @@ export default function TodayScreen() {
             <View style={{ alignItems: 'center' }}>
               <BudgetRing consumed={consumed} budget={budget} />
               {streak > 0 && (
-                <View style={styles.streak}>
+                <Pressable style={styles.streak} onPress={() => router.push('/stats')}>
                   <Icon name="flame" size={14} color={C.ember} weight={1.9} />
                   <Text style={styles.streakText}>
                     {streak === 1 ? t('today.streakOne') : t('today.streakMany', { n: streak })}
                   </Text>
-                </View>
+                  <Icon name="chevron" size={12} color={C.faint} />
+                </Pressable>
               )}
             </View>
 
             {/* what you ate vs what you burned, and the net */}
-            <EnergyBalance consumed={consumed} burn={burn} steps={steps} />
+            <EnergyBalance consumed={consumed} burn={burn} steps={steps} providerConnected={fitConnected} />
 
             {/* the day's shape, in colour */}
             <MacroBars macros={macros} />

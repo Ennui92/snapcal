@@ -49,19 +49,33 @@ function fmtDuration(ms: number): string {
 
 /** Calories in vs out vs net. The fitness payoff, finally on screen. */
 export function EnergyBalance({
-  consumed, burn, steps,
-}: { consumed: number; burn: number | null; steps: number }) {
+  consumed, burn, steps, providerConnected,
+}: { consumed: number; burn: number | null; steps: number; providerConnected: boolean }) {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
-  const connected = burn != null;
   const net = consumed - (burn ?? 0);
 
-  if (!connected) {
+  // Three distinct states. Previously a connected user with no data for today
+  // saw the "connect a provider" prompt, which reads as if the connection
+  // never worked.
+  if (!providerConnected) {
     return (
       <Pressable style={styles.connectCard} onPress={() => router.push('/connections')}>
         <Icon name="bolt" size={16} color={C.signal} weight={2} />
         <Text style={styles.connectText}>
           Connect Strava, Health Connect or Oura to see what you burn
+        </Text>
+        <Icon name="chevron" size={14} color={C.faint} />
+      </Pressable>
+    );
+  }
+
+  if (burn == null) {
+    return (
+      <Pressable style={styles.connectCard} onPress={() => router.push('/connections')}>
+        <Icon name="link" size={16} color={C.signal} weight={2} />
+        <Text style={styles.connectText}>
+          Connected, but no workout data has arrived for today yet. Tap to check the connection.
         </Text>
         <Icon name="chevron" size={14} color={C.faint} />
       </Pressable>
