@@ -27,7 +27,17 @@ number, a hand-drawn icon set replacing all emoji, the budget ring rebuilt as a
 270° instrument arc with tick marks, log rows as a contact sheet, viewfinder
 brackets on the camera, and a film-grain overlay.
 
-### v0.4.0+ — feature wave (in progress, 2026-07-24)
+### v0.4.0 — feature wave part 1 (2026-07-24, shipped)
+Shipped: **AI coach chat** (/coach), **barcode scanning** (/scan), **recipe
+suggestions** (/recipes), **intermittent fasting** (/fasting) — the four
+independent leaf features, built by parallel subagents. Plus the shared
+foundation: a **persistent bottom tab bar** (Diary / Stats / Camera / Coach /
+More) that makes home and every feature one tap away, a quick-actions row on
+Diary, and the **freemium split** (premium.ts reverse-trial gating, /plus
+paywall, settings plan card, a real free-tier scan limit on the camera).
+Deferred to v0.5.0: see the "next" list below.
+
+### v0.4.0+ — feature wave part 2 (queued for v0.5.0)
 Big feature push requested from competitor-app reference shots (Cal AI coach,
 SnapCalorie photo journal, MyFitnessPal voice logging). Sequenced by conflict
 surface, since this is a single RN app where theme/nav/db/locales are shared:
