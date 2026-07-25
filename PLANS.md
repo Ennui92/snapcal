@@ -75,6 +75,27 @@ complaint, not a nice-to-have:
 - Navigation overhaul so none of this is buried: tab bar is Today · Photos ·
   [Camera] · Stats · Feed, plus a quick-action row on Today.
 
+### v0.7.0 — navigation audit + fitness/fasting integration (2026-07-26)
+- **The camera was a dead end.** It is the launch screen and only linked to
+  Today, so Scan, Voice, Coach, Fasting, Photos, Stats and the wall were all
+  unreachable from where the app opens. Fixed with a quick-action row on the
+  camera plus a translucent tab bar over the viewfinder. Audited every screen
+  for a way back and every route for an entry point. Streak links to Stats.
+- **Fitness looked broken because it was.** The dashboard inferred whether a
+  provider was connected from whether burn data existed, so a connected user
+  with nothing synced yet was told to connect. Three states now.
+- **`src/lib/day-context.ts` is the new integration keystone**: one answer to
+  what happened on a day (budget, eaten, burn, steps, net, macros, fasting
+  hours, live fast), consumed by the coach, the nudges, recipes, the day share
+  card, stats and the feed. Fasting also gained the day-level queries it never
+  had (overlap-aware, since fasts straddle the 03:00 day boundary).
+  **New day-reasoning features should consume this rather than re-querying.**
+- **Barcode correctness**: drinks read in ml with real bottle-size defaults,
+  and name + kcal/100 are editable on a found product, saved so the correction
+  wins on later scans. AI label reads carry a caution.
+- **The wall is honest**: reframed as device-local, Share promoted, `/profile`
+  added with lifetime stats and milestones.
+
 #### Known gaps after v0.6.0 (be honest about these)
 - **The feed is local-only.** Posts and share images live on the device. It is
   a sharing/growth loop, not yet a social network. A shared feed needs a
