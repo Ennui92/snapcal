@@ -75,6 +75,22 @@ complaint, not a nice-to-have:
 - Navigation overhaul so none of this is buried: tab bar is Today · Photos ·
   [Camera] · Stats · Feed, plus a quick-action row on Today.
 
+#### Known gaps after v0.6.0 (be honest about these)
+- **The feed is local-only.** Posts and share images live on the device. It is
+  a sharing/growth loop, not yet a social network. A shared feed needs a
+  backend; Firebase is the obvious next step and `social.ts` is structured so
+  the store can be swapped for a synced one.
+- **Seed catalogue is 79 products.** Real, verified barcodes (pulled live from
+  Open Food Facts, not invented), but that is a starter set covering common
+  Greek items, not a national database. It grows per user as they scan, and the
+  AI label fallback covers whatever nobody knows.
+- **Verified live 2026-07-25:** the `gr.openfoodfacts.org` subdomain returns
+  the same data as `world.` (one database, localized view), so the country
+  routing is not itself extra coverage. What actually fixes Greece is the
+  offline seed plus the AI label reader.
+- **Not device-tested.** Everything typechecks and bundles; the new screens
+  have not been exercised on a physical phone.
+
 ### v0.4.0+ — feature wave part 2 (queued)
 Big feature push requested from competitor-app reference shots (Cal AI coach,
 SnapCalorie photo journal, MyFitnessPal voice logging). Sequenced by conflict
