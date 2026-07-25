@@ -1,7 +1,9 @@
 // Point the camera at a barcode instead of a plate. Packaged food already
-// tells you exactly what's inside, so this skips the AI entirely: scan, look
-// it up, log it. Falls back to a two-field manual entry when a code isn't in
-// Open Food Facts yet.
+// tells you exactly what's inside, so this skips the AI in the common case:
+// scan, look it up (local cache/seed catalogue, then country-aware Open Food
+// Facts — see lib/food-db), log it. When nothing knows the barcode, offer to
+// snap the nutrition label instead and let Gemini read it, with a two-field
+// manual entry as the last resort.
 import * as Haptics from 'expo-haptics';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -54,6 +56,7 @@ export default function ScanScreen() {
   const insets = useSafeAreaInsets();
   const { refresh } = useStore();
   const [permission, requestPermission] = useCameraPermissions();
+  const cameraRef = useRef<CameraView>(null);
 
   const [scannedCode, setScannedCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -65,6 +68,11 @@ export default function ScanScreen() {
   const [manualName, setManualName] = useState('');
   const [manualKcal, setManualKcal] = useState('');
 
+  // AI label-photo fallback: only reachable once a barcode lookup comes back
+  // empty. 'idle' -> 'capturing' (shutter) -> 'analyzing' (Gemini) -> 'done' | 'error'.
+  const [aiState, setAiState] = useState<'idle' | 'capturing' | 'analyzing' | 'done' | 'error'>('idle');
+  const [aiResult, setAiResult] = useState<AiPhotoProduct | null>(null);
+
   const sheetOpen = scannedCode !== null;
 
   const reset = () => {
@@ -75,6 +83,41 @@ export default function ScanScreen() {
     setGrams('100');
     setManualName('');
     setManualKcal('');
+    setAiState('idle');
+    setAiResult(null);
+  };
+
+  const onSnapLabel = async () => {
+    if (!cameraRef.current || aiState === 'capturing' || aiState === 'analyzing') return;
+    setAiState('capturing');
+    try {
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.85 });
+      if (!photo?.uri) {
+        setAiState('error');
+        return;
+      }
+      setAiState('analyzing');
+      const manipulated = await ImageManipulator.manipulateAsync(
+        photo.uri,
+        [{ resize: { width: UPLOAD_WIDTH } }],
+        { compress: UPLOAD_JPEG_QUALITY, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+      );
+      if (!manipulated.base64) {
+        setAiState('error');
+        return;
+      }
+      const result = await identifyProductByPhoto(manipulated.base64, scannedCode ?? undefined);
+      if (!result) {
+        setAiState('error');
+        return;
+      }
+      setAiResult(result);
+      setAiState('done');
+      setGrams(String(result.servingGrams && result.servingGrams > 0 ? Math.round(result.servingGrams) : 100));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      setAiState('error');
+    }
   };
 
   // CameraView's onBarcodeScanned prop is only wired up while the sheet is
@@ -124,24 +167,38 @@ export default function ScanScreen() {
   const manualKcalNum = parseFloat(manualKcal.replace(',', '.'));
   const manualValid = manualName.trim().length > 0 && isFinite(manualKcalNum) && manualKcalNum > 0;
 
-  // When the lookup came back empty, the manually-typed fields (once valid)
-  // stand in for the product so the rest of the screen — grams, live total,
-  // the Log button — works exactly the same as a found product.
+  // When the lookup came back empty, the AI label read (once available) or
+  // the manually-typed fields (once valid) stand in for the product so the
+  // rest of the screen — grams, live total, the Log button — works exactly
+  // the same as a found product.
   const effectiveProduct: ProductLookup | null =
     product && !product.found
-      ? manualValid
+      ? aiResult
         ? {
             found: true,
-            name: manualName.trim(),
-            brand: null,
-            kcalPer100g: manualKcalNum,
-            proteinPer100g: 0,
-            carbsPer100g: 0,
-            fatPer100g: 0,
-            sugarPer100g: 0,
-            servingGrams: null,
+            name: aiResult.name,
+            brand: aiResult.brand,
+            kcalPer100g: aiResult.kcalPer100g,
+            proteinPer100g: aiResult.proteinPer100g,
+            carbsPer100g: aiResult.carbsPer100g,
+            fatPer100g: aiResult.fatPer100g,
+            sugarPer100g: aiResult.sugarPer100g,
+            servingGrams: aiResult.servingGrams,
+            source: 'ai',
           }
-        : null
+        : manualValid
+          ? {
+              found: true,
+              name: manualName.trim(),
+              brand: null,
+              kcalPer100g: manualKcalNum,
+              proteinPer100g: 0,
+              carbsPer100g: 0,
+              fatPer100g: 0,
+              sugarPer100g: 0,
+              servingGrams: null,
+            }
+          : null
       : product;
 
   const totalKcal =
@@ -157,6 +214,22 @@ export default function ScanScreen() {
 
   const onLog = () => {
     if (!canLog || !effectiveProduct?.found) return;
+    // AI-read labels aren't in any cache yet — save them keyed by the
+    // barcode that triggered the fallback so the next scan is an instant hit.
+    if (effectiveProduct.source === 'ai' && scannedCode) {
+      saveProduct({
+        barcode: scannedCode,
+        name: effectiveProduct.name,
+        brand: effectiveProduct.brand,
+        kcalPer100g: effectiveProduct.kcalPer100g,
+        proteinPer100g: effectiveProduct.proteinPer100g,
+        carbsPer100g: effectiveProduct.carbsPer100g,
+        fatPer100g: effectiveProduct.fatPer100g,
+        sugarPer100g: effectiveProduct.sugarPer100g,
+        servingGrams: effectiveProduct.servingGrams,
+        source: 'ai',
+      });
+    }
     logScannedProduct(effectiveProduct, gramsNum, mealType);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     refresh();
@@ -206,6 +279,7 @@ export default function ScanScreen() {
   return (
     <View style={styles.root}>
       <CameraView
+        ref={cameraRef}
         style={StyleSheet.absoluteFill}
         facing="back"
         barcodeScannerSettings={{ barcodeTypes: [...BARCODE_TYPES] }}
@@ -253,6 +327,9 @@ export default function ScanScreen() {
                 {product?.found ? (
                   <>
                     <View style={styles.productHead}>
+                      {product.source ? (
+                        <Text style={styles.sourceBadge}>{SOURCE_LABEL[product.source] ?? product.source}</Text>
+                      ) : null}
                       <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
                       {product.brand ? <Text style={styles.productBrand}>{product.brand}</Text> : null}
                     </View>
@@ -264,13 +341,56 @@ export default function ScanScreen() {
                       </View>
                     </Card>
                   </>
+                ) : aiResult ? (
+                  <>
+                    <View style={styles.productHead}>
+                      <Text style={styles.sourceBadge}>{SOURCE_LABEL.ai}</Text>
+                      <Text style={styles.productName} numberOfLines={2}>{aiResult.name}</Text>
+                      {aiResult.brand ? <Text style={styles.productBrand}>{aiResult.brand}</Text> : null}
+                    </View>
+                    <Card style={{ marginBottom: 14 }}>
+                      <Text style={styles.fieldLabel}>Per 100g</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                        <Text style={styles.kcalReadout}>{fmtKcal(aiResult.kcalPer100g)}</Text>
+                        <Text style={styles.kcalUnit}>kcal</Text>
+                      </View>
+                    </Card>
+                  </>
                 ) : (
                   <>
                     <Text style={styles.notFoundTitle}>Product not found</Text>
                     <Text style={styles.notFoundBody}>
-                      This barcode isn&apos;t in Open Food Facts. Enter it manually — SnapCal will
-                      remember it for next time.
+                      This barcode isn&apos;t in Open Food Facts. Snap a photo of the nutrition
+                      label instead and SnapCal will read it — or enter it manually below.
                     </Text>
+
+                    {aiState === 'capturing' || aiState === 'analyzing' ? (
+                      <View style={styles.aiRow}>
+                        <ActivityIndicator color={C.signal} />
+                        <Text style={styles.aiRowText}>
+                          {aiState === 'capturing' ? 'Taking photo…' : 'Reading label…'}
+                        </Text>
+                      </View>
+                    ) : (
+                      <BigButton
+                        label="Snap the label"
+                        icon="camera"
+                        onPress={() => { void onSnapLabel(); }}
+                        style={{ marginBottom: 10 }}
+                      />
+                    )}
+                    {aiState === 'error' ? (
+                      <Text style={styles.aiErrorText}>
+                        Couldn&apos;t read that label. Try again, or enter it manually below.
+                      </Text>
+                    ) : null}
+
+                    <View style={styles.orDivider}>
+                      <View style={styles.orLine} />
+                      <Text style={styles.orText}>or enter manually</Text>
+                      <View style={styles.orLine} />
+                    </View>
+
                     <Card style={{ marginBottom: 14 }}>
                       <Text style={styles.fieldLabel}>Name</Text>
                       <TextInput
@@ -279,7 +399,6 @@ export default function ScanScreen() {
                         value={manualName}
                         onChangeText={setManualName}
                         style={styles.input}
-                        autoFocus
                       />
                       <Text style={styles.fieldLabel}>Kcal per 100g</Text>
                       <TextInput
@@ -359,9 +478,21 @@ const makeStyles = (C: Palette) => StyleSheet.create({
   productHead: { marginBottom: 12 },
   productName: { fontFamily: F.heading, fontSize: 21, color: C.ink, letterSpacing: -0.4 },
   productBrand: { fontSize: 13, color: C.muted, marginTop: 3 },
+  sourceBadge: { ...label, color: C.signal, fontSize: 9.5, marginBottom: 6 },
 
   notFoundTitle: { fontFamily: F.heading, fontSize: 19, color: C.ink, marginBottom: 6 },
   notFoundBody: { fontSize: 13.5, color: C.muted, lineHeight: 19, marginBottom: 14 },
+
+  aiRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    paddingVertical: 14, marginBottom: 10, borderRadius: radius.button,
+    backgroundColor: C.raised, borderWidth: 1, borderColor: C.border,
+  },
+  aiRowText: { fontSize: 13.5, color: C.muted },
+  aiErrorText: { fontSize: 12.5, color: C.danger, marginBottom: 10, lineHeight: 17 },
+  orDivider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  orLine: { flex: 1, height: 1, backgroundColor: C.border },
+  orText: { ...label, color: C.faint, fontSize: 9.5 },
 
   fieldLabel: { ...label, color: C.faint, marginBottom: 8 },
   kcalReadout: { fontFamily: F.mono, fontSize: 28, color: C.ink, letterSpacing: -0.6 },
