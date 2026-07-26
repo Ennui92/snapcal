@@ -16,14 +16,49 @@ import { useColors } from '@/lib/theme-context';
  * colours (signal/danger/ember) and picked to stay legible as both a stroke
  * and a fill on a near-black *and* a near-white background.
  */
-export const CHART_COLORS = {
-  intake: '#4C8DFF', // calories eaten
-  burn: '#FF7A45', // calories burned (fitness)
-  protein: '#8B5CF6', // violet
-  carbs: '#22B8CF', // cyan
-  fat: '#F5A623', // amber
-  sugar: '#EC4899', // pink / magenta
-} as const;
+export type ChartPalette = {
+  intake: string; burn: string;
+  protein: string; carbs: string; fat: string; sugar: string;
+};
+
+// The first palette was a rainbow (blue, coral, violet, cyan, amber, pink):
+// six unrelated hues that fought the app's lime-on-black identity and looked
+// like a stock template. These are one deliberate family instead — a lime ->
+// mint -> amber -> rose ramp at roughly even luminance, so the series stay
+// distinguishable without any single one shouting. Intake is the brand lime,
+// because it is the number the whole app is about; burn is its cool
+// counterweight (energy out reads cold); sugar sits at the warm/alarming end
+// on purpose, since it is the macro people want to watch.
+const DARK_CHART: ChartPalette = {
+  intake: '#C8FA3C',
+  burn: '#3FD8C8',
+  protein: '#6FE3C4',
+  carbs: '#A8E85C',
+  fat: '#FFB43D',
+  sugar: '#FF6B9A',
+};
+
+// Light mode needs the same hues carried deeper: the dark set is tuned to glow
+// on near-black and would wash out to pastel mush on white.
+const LIGHT_CHART: ChartPalette = {
+  intake: '#4E8C1F',
+  burn: '#0E8C86',
+  protein: '#12867A',
+  carbs: '#4F8410',
+  fat: '#A85F06',
+  sugar: '#C9285F',
+};
+
+/** Series colours for the active theme. */
+export function useChartColors(): ChartPalette {
+  const C = useColors();
+  // The dark palette's own background is near-black; comparing against it is a
+  // cheap, reliable way to know which theme is live without another context.
+  return C.bg === '#08080A' ? DARK_CHART : LIGHT_CHART;
+}
+
+/** Static fallback for non-themed contexts (share cards are always dark). */
+export const CHART_COLORS = DARK_CHART;
 
 // ---------------------------------------------------------------------------
 // BarChart — one or two series of vertical bars, an optional dashed budget

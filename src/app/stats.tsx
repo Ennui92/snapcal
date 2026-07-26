@@ -8,7 +8,7 @@ import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { F, label, radius, type Palette } from '@/constants/theme';
 import { useColors } from '@/lib/theme-context';
-import { BarChart, CHART_COLORS, Donut, Heatmap, LineChart, type BarDatum, type DonutSegment, type HeatCell } from '@/components/charts';
+import { BarChart, Donut, Heatmap, LineChart, useChartColors, type BarDatum, type DonutSegment, type HeatCell } from '@/components/charts';
 import { Card, Chip, IconButton, Section } from '@/components/ui';
 import { Icon } from '@/components/icons';
 import { TabBar } from '@/components/tab-bar';
@@ -39,6 +39,7 @@ function bestStreak(days: DayStat[]): number {
 
 export default function StatsScreen() {
   const C = useColors();
+  const CHART_COLORS = useChartColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const [range, setRange] = useState<Range>(7);

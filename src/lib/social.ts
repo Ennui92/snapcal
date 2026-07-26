@@ -16,6 +16,7 @@
 // could become network calls later).
 import type { RefObject } from 'react';
 import { Share, type View } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as SQLite from 'expo-sqlite';
 import { captureRef } from 'react-native-view-shot';
@@ -62,6 +63,32 @@ initSocial();
 /** Renders a share card (already mounted off-screen) to a PNG file and
  * returns its file uri. Pixel ratio 3 so the acid-lime accent and mono type
  * stay crisp when someone zooms in on a story or a chat thread. */
+/**
+ * Move a captured card into permanent app storage.
+ *
+ * captureRef writes to the OS cache directory, which Android is free to purge
+ * at any time. Saving that path into a post meant wall posts looked fine at
+ * first and then rendered blank days later, once the cache had been cleared.
+ * Anything we intend to keep has to be copied into documentDirectory.
+ */
+export async function persistPostImage(tmpUri: string): Promise<string> {
+  const dir = `${FileSystem.documentDirectory}posts/`;
+  await FileSystem.makeDirectoryAsync(dir, { intermediates: true }).catch(() => {});
+  const dest = `${dir}post-${Date.now()}.png`;
+  await FileSystem.copyAsync({ from: tmpUri, to: dest });
+  return dest;
+}
+
+/** True when a stored post image is still on disk (older posts may not be). */
+export async function postImageExists(uri: string): Promise<boolean> {
+  try {
+    const info = await FileSystem.getInfoAsync(uri);
+    return info.exists;
+  } catch {
+    return false;
+  }
+}
+
 export async function captureCard(ref: RefObject<View | null>): Promise<string> {
   // pixelRatio is a real, documented capture option; it's just missing from
   // this pinned version's CaptureOptions type, so it's passed via a loosely

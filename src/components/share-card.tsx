@@ -122,7 +122,7 @@ export const MealShareCard = forwardRef<View, { entry: Entry; width?: number }>(
 
           <View style={styles.kcalRow}>
             <Text style={styles.kcalNum}>{fmtKcal(consumed)}</Text>
-            <Text style={styles.kcalUnitLight}>KCAL</Text>
+            <Text style={styles.kcalUnitLight}>KCAL IN</Text>
           </View>
 
           <View style={styles.chipsRow}>
@@ -160,8 +160,10 @@ export const DayShareCard = forwardRef<View, { summary: DaySharePayload; width?:
         <View style={[styles.ringWrap, { width: ringSize, height: ringSize }]}>
           <MiniRing size={ringSize} ratio={ratio} tone={tone} />
           <View style={styles.ringCenter}>
+            {/* Without this label the number is ambiguous: eaten, left, or burned? */}
+            <Text style={styles.ringEyebrow}>Calories in</Text>
             <Text style={[styles.ringNum, { color: tone }]}>{fmtKcal(summary.consumed)}</Text>
-            <Text style={styles.ringUnit}>of {fmtKcal(summary.budget)} kcal</Text>
+            <Text style={styles.ringUnit}>of {fmtKcal(summary.budget)} budget</Text>
           </View>
         </View>
 
@@ -233,6 +235,10 @@ export const DayShareCard = forwardRef<View, { summary: DaySharePayload; width?:
 );
 
 const styles = StyleSheet.create({
+  ringEyebrow: {
+    fontFamily: F.mono, fontSize: 8, letterSpacing: 1.4, textTransform: 'uppercase',
+    color: D.muted, marginBottom: 1,
+  },
   card: {
     backgroundColor: D.bg,
     borderRadius: radius.card,

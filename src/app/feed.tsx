@@ -14,7 +14,7 @@ import { EntryCard } from '@/components/entry-card';
 import { Icon } from '@/components/icons';
 import { DayShareCard, MealShareCard, type DaySharePayload } from '@/components/share-card';
 import { getDayContext } from '@/lib/day-context';
-import { addPost, captureCard, deletePost, getPosts, shareImage, type Post } from '@/lib/social';
+import { addPost, captureCard, deletePost, getPosts, persistPostImage, shareImage, type Post } from '@/lib/social';
 import {
   consumedForDay, dayKeyFor, daySummaries, getEntriesForDay, getProfile, type Entry, type Profile,
 } from '@/lib/db';
@@ -107,6 +107,9 @@ function relativeTime(iso: string): string {
 function PostRow({ post, onDelete }: { post: Post; onDelete: (id: number) => void }) {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
+  // Posts saved before images were copied into app storage point at a cache
+  // path the OS may have wiped. Say so instead of showing an empty rectangle.
+  const [imageGone, setImageGone] = useState(false);
 
   const onShare = async () => {
     try {
@@ -118,11 +121,23 @@ function PostRow({ post, onDelete }: { post: Post; onDelete: (id: number) => voi
 
   return (
     <Card style={styles.postCard}>
-      <Image source={{ uri: post.imageUri }} style={styles.postImage} resizeMode="cover" />
+      {imageGone ? (
+        <View style={[styles.postImage, styles.postImageGone]}>
+          <Icon name="warn" size={20} color={C.faint} />
+          <Text style={styles.postGoneText}>This image was cleared by the system. Make a new one to share.</Text>
+        </View>
+      ) : (
+        <Image
+          source={{ uri: post.imageUri }}
+          style={styles.postImage}
+          resizeMode="cover"
+          onError={() => setImageGone(true)}
+        />
+      )}
       <Text style={styles.postCaption} numberOfLines={2}>{post.caption}</Text>
       <Text style={styles.postTime}>{relativeTime(post.createdAt)}</Text>
       <View style={styles.postActions}>
-        <BigButton label="Share" icon="share" onPress={onShare} style={{ flex: 1 }} />
+        <BigButton label="Share" icon="share" onPress={onShare} style={{ flex: 1 }} disabled={imageGone} />
         <IconButton icon="trash" onPress={() => onDelete(post.id)} />
       </View>
     </Card>
@@ -229,14 +244,22 @@ export default function FeedScreen() {
     }
   };
 
-  const doPost = () => {
+  const doPost = async () => {
     if (!preview) return;
+    // The captured file sits in the OS cache, which Android purges whenever it
+    // likes — copy it into app storage first or the post goes blank later.
+    let stored = preview.uri;
+    try {
+      stored = await persistPostImage(preview.uri);
+    } catch {
+      // If the copy fails, still save: a post with a doomed path beats losing it.
+    }
     addPost({
       kind: preview.kind,
       entryId: preview.entryId,
       dayKey: preview.dayKey,
       caption: preview.caption,
-      imageUri: preview.uri,
+      imageUri: stored,
     });
     loadPosts();
     setConfirmMsg('Saved to your wall.');
@@ -363,6 +386,8 @@ export default function FeedScreen() {
 }
 
 const makeStyles = (C: Palette) => StyleSheet.create({
+  postImageGone: { alignItems: 'center', justifyContent: 'center', gap: 8, padding: 20, backgroundColor: C.raised },
+  postGoneText: { fontSize: 12.5, color: C.muted, textAlign: 'center', lineHeight: 17 },
   root: { flex: 1, backgroundColor: C.bg },
 
   confirmBanner: {
