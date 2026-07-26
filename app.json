@@ -2,7 +2,7 @@
   "expo": {
     "name": "SnapCal",
     "slug": "snapcal",
-    "version": "0.7.1",
+    "version": "0.7.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "snapcal",
@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "dev.ermis.snapcal",
-      "versionCode": 12,
+      "versionCode": 13,
       "adaptiveIcon": {
         "backgroundColor": "#08080A",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

@@ -2,8 +2,12 @@
 // bloated universal APK.
 //
 // By default the build packs FOUR ABIs (arm64-v8a, armeabi-v7a, x86, x86_64).
-// The two x86 variants are emulator-only and nearly doubled the download to
-// 145MB — a classic "stuck at 100%" sideload. We keep only the two phone ABIs.
+// The two x86 variants are emulator-only. armeabi-v7a is 32-bit, which no phone
+// sold in years uses, and it cost ~12MB of a download that kept stalling. So
+// this ships arm64-v8a alone: every Android phone from roughly 2017 on.
+// If a 32-bit device ever needs supporting, add armeabi-v7a back here — or
+// better, publish an Android App Bundle to Play, which splits per device
+// automatically and makes this whole question go away.
 //
 // IMPORTANT: React Native's own Gradle plugin decides which .so libraries to
 // package from the `reactNativeArchitectures` GRADLE PROPERTY, and that wins
@@ -13,8 +17,8 @@
 // step that copies app-release.apk is unchanged.
 const { withGradleProperties, withAppBuildGradle } = require('expo/config-plugins');
 
-const ARCHES = 'arm64-v8a,armeabi-v7a';
-const ABIS_GRADLE = "'arm64-v8a', 'armeabi-v7a'";
+const ARCHES = 'arm64-v8a';
+const ABIS_GRADLE = "'arm64-v8a'";
 
 function withArchProperty(config) {
   return withGradleProperties(config, (config) => {
