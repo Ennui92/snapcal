@@ -29,9 +29,14 @@ VERSION="${1:?usage: release-verify.sh <version> [--no-publish]}"
 PUBLISH=1
 [[ "${2:-}" == "--no-publish" ]] && PUBLISH=0
 
-ROLLING_TAG="android-latest"
-ASSET="snapcal.apk"
-URL="https://github.com/$(gh repo view --json nameWithOwner -q .nameWithOwner)/releases/download/${ROLLING_TAG}/${ASSET}"
+ROLLING_TAG="${ROLLING_TAG:-android-latest}"
+REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+# Auto-detect the apk asset so this drops into any of the other Android repos
+# without editing: whatever .apk the rolling release carries is the one we check.
+ASSET="$(gh release view "$ROLLING_TAG" --json assets -q '.assets[] | select(.name|endswith(".apk")) | .name' | sed -n '1p')"
+[[ -n "$ASSET" ]] || { echo "FAIL: no .apk asset on tag $ROLLING_TAG" >&2; exit 1; }
+APP_NAME="$(basename "$ASSET" .apk)"
+URL="https://github.com/${REPO}/releases/download/${ROLLING_TAG}/${ASSET}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
@@ -84,7 +89,7 @@ if [[ "$PUBLISH" == "1" ]]; then
     gh release upload "$TAG" "$TMP/app.apk#${ASSET}" --clobber
   else
     gh release create "$TAG" "$TMP/app.apk#${ASSET}" \
-      --title "SnapCal ${VERSION}" \
+      --title "${APP_NAME} ${VERSION}" \
       --notes "$(printf 'Verified build of %s.\n\nsha256: `%s`\nsigner SHA-1: `%s`\ndownload: %s MB\n\nThis tag is immutable — the file behind this link will not change, so a download cannot be replaced mid-transfer.' "$VERSION" "$SHA256" "$SHA1" "$((ACTUAL/1048576))")"
   fi
   echo

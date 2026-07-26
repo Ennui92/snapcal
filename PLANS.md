@@ -96,6 +96,26 @@ complaint, not a nice-to-have:
 - **The wall is honest**: reframed as device-local, Share promoted, `/profile`
   added with lifetime stats and milestones.
 
+### v0.7.2 — APK delivery, fixed properly (2026-07-26)
+The recurring "stuck at 100%" download was not the browser (it happened in
+Chrome too) and not a corrupt file. `android-latest` is a **rolling tag**: every
+build overwrites the same asset, so a download in flight had its bytes replaced
+and stalled at the end. GitHub also serves releases via a **signed, ~1h S3 URL**,
+so a big download on slow data can outlive the signature.
+
+Fixed by `scripts/release-verify.sh`: verifies the *published* artifact
+(declared vs received bytes, zip integrity, signature, manifest parses and
+version matches, install footprint) and republishes it under an **immutable
+`vX.Y.Z` tag** with its sha256. **Rule: always hand over the version tag, never
+`android-latest`.** Also cut the download to arm64-v8a only (32-bit is dead
+weight). The script auto-detects the apk asset so it can be copied to the other
+Android repos as-is.
+
+**Open:** R8/ProGuard is off, so there are 6 dex files (~56MB uncompressed).
+Enabling it would shrink the download a lot, but it breaks reflection-heavy RN
+code in ways that only appear at runtime, and there is no device test loop here.
+Needs a real device check before flipping, not a blind enable.
+
 #### Known gaps after v0.6.0 (be honest about these)
 - **The feed is local-only.** Posts and share images live on the device. It is
   a sharing/growth loop, not yet a social network. A shared feed needs a
