@@ -13,6 +13,7 @@ import { useColors } from '@/lib/theme-context';
 import { Icon } from '@/components/icons';
 import { Grain, IconButton, ScreenHeader } from '@/components/ui';
 import { addMessage, askCoach, getMessages, type CoachMessage } from '@/lib/coach';
+import { goBackOrHome } from '@/lib/nav';
 
 const SUGGESTIONS = [
   'What should I eat tonight?',
@@ -88,7 +89,7 @@ export default function CoachScreen() {
       <View style={{ paddingTop: insets.top + 8 }}>
         <ScreenHeader
           title="Coach"
-          left={<IconButton icon="back" onPress={() => router.back()} />}
+          left={<IconButton icon="back" onPress={() => goBackOrHome()} />}
         />
       </View>
 

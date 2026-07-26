@@ -8,7 +8,8 @@
 // real camera app's capture button.
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { router, usePathname } from 'expo-router';
+import { usePathname } from 'expo-router';
+import { goToCamera, goToTab } from '@/lib/nav';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { F, label, type Palette } from '@/constants/theme';
@@ -36,7 +37,7 @@ function TabItem({ item, active }: { item: Item; active: boolean }) {
       onPress={() => {
         if (active) return;
         Haptics.selectionAsync();
-        router.replace(item.route as never);
+        goToTab(item.route);
       }}
     >
       <Icon name={item.icon} size={21} color={active ? C.signal : C.faint} weight={active ? 2.1 : 1.8} />
@@ -64,7 +65,7 @@ export function TabBar({ overlay = false }: { overlay?: boolean } = {}) {
       {/* centre: back to the camera */}
       <Pressable
         style={styles.shutterWrap}
-        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.replace('/'); }}
+        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); goToCamera(); }}
       >
         <View style={styles.shutter}>
           <Icon name="camera" size={24} color={C.onSignal} weight={2} />

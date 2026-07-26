@@ -1,8 +1,9 @@
 // Entry detail: fix mistakes fast. The big slider answers "how much of it
-// did you actually eat?" and every item can be tweaked or removed.
+// did you actually eat?" and every item can be renamed, re-weighed, re-costed
+// in kcal, or removed.
 import Slider from '@react-native-community/slider';
 import * as Haptics from 'expo-haptics';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,12 +13,16 @@ import { BigButton, Card } from '@/components/ui';
 import { analyzeEntry } from '@/lib/analyzer';
 import {
   addManualItem, deleteEntry, deleteItem, getEntry, getItems,
-  setEntryEatenPct, setEntryTime, updateItemPortion, type Entry, type Item,
+  setEntryEatenPct, setEntryTime, updateItemNutrition, type Entry, type Item,
 } from '@/lib/db';
 import { localeTag, t } from '@/lib/i18n';
 import { fmtKcal, mealLabel } from '@/lib/nutrition';
 import { useStore } from '@/lib/store';
 import { Icon } from '@/components/icons';
+import { goBackOrHome } from '@/lib/nav';
+
+const QUICK_DELTAS = [-25, -10, 10, 25];
+const QUICK_WEIGHTS = [100, 150, 200, 300];
 
 export default function EntryDetail() {
   const C = useColors();
@@ -35,6 +40,12 @@ export default function EntryDetail() {
   const [newKcal, setNewKcal] = useState('');
   const [editingTime, setEditingTime] = useState(false);
   const [timeInput, setTimeInput] = useState('');
+
+  // Item edit state: at most one item row is open at a time.
+  const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editGrams, setEditGrams] = useState('');
+  const [editKcal, setEditKcal] = useState('');
 
   const load = useCallback(() => {
     const e = getEntry(entryId);
@@ -70,7 +81,7 @@ export default function EntryDetail() {
       { text: t('entry.keep'), style: 'cancel' },
       {
         text: t('entry.delete'), style: 'destructive',
-        onPress: () => { deleteEntry(entryId); refresh(); router.back(); },
+        onPress: () => { deleteEntry(entryId); refresh(); goBackOrHome(); },
       },
     ]);
   };
@@ -108,11 +119,70 @@ export default function EntryDetail() {
     load(); refresh();
   };
 
+  // --- item correction: rename, re-weigh, re-cost in kcal ---
+
+  const startItemEdit = (it: Item) => {
+    setEditingItemId(it.id);
+    setEditName(it.name);
+    setEditGrams(it.portionGrams > 0 ? String(Math.round(it.portionGrams)) : '');
+    setEditKcal(String(Math.round(it.kcal)));
+    Haptics.selectionAsync();
+  };
+
+  const closeItemEdit = () => setEditingItemId(null);
+
+  // Weight changed: live-rescale the kcal preview from this item's own ratio
+  // (per-100g for packaged foods, kcal/portion otherwise) before anything is saved.
+  const onGramsChange = (text: string) => {
+    setEditGrams(text);
+    const it = items.find(i => i.id === editingItemId);
+    if (!it) return;
+    const grams = parseFloat(text);
+    if (!isFinite(grams) || grams < 0) return;
+    if (it.isPackaged && it.kcalPer100g > 0) {
+      setEditKcal(String(Math.round((it.kcalPer100g * grams) / 100)));
+    } else if (it.portionGrams > 0) {
+      setEditKcal(String(Math.round((it.kcal * grams) / it.portionGrams)));
+    }
+  };
+
+  const setGramsTo = (grams: number) => onGramsChange(String(Math.round(grams)));
+
+  const bumpGrams = (factor: number) => {
+    const current = parseFloat(editGrams);
+    const base = isFinite(current) && current > 0 ? current : 100;
+    setGramsTo(base * factor);
+  };
+
+  const saveItemEdit = () => {
+    if (editingItemId == null) return;
+    const it = items.find(i => i.id === editingItemId);
+    if (!it) return;
+    const grams = parseFloat(editGrams);
+    const kcal = parseFloat(editKcal);
+    updateItemNutrition(editingItemId, {
+      name: editName.trim() || it.name,
+      portionGrams: isFinite(grams) ? grams : undefined,
+      kcal: isFinite(kcal) ? kcal : undefined,
+    });
+    setEditingItemId(null);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    load(); refresh();
+  };
+
+  const onDeleteItem = (itemId: number) => {
+    deleteItem(itemId);
+    if (editingItemId === itemId) setEditingItemId(null);
+    load(); refresh();
+  };
+
+  const previewKcal = Math.round(parseFloat(editKcal) || 0);
+
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
       <View style={styles.photoWrap}>
         {entry.photoUri && <Image source={{ uri: entry.photoUri }} style={styles.photo} />}
-        <Pressable onPress={() => router.back()} style={[styles.backBtn, { top: insets.top + 8 }]}>
+        <Pressable onPress={() => goBackOrHome()} style={[styles.backBtn, { top: insets.top + 8 }]}>
           <Icon name="back" size={18} color={C.ink} weight={2.2} />
         </Pressable>
       </View>
@@ -195,40 +265,94 @@ export default function EntryDetail() {
         </Card>
 
         <Text style={styles.sectionTitle}>{t('entry.onPlate')}</Text>
-        {items.map(it => (
-          <Card key={it.id} style={styles.itemRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.itemName}>
-                {it.brand ? `${it.brand} ` : ''}{it.name}
-              </Text>
-              <Text style={styles.itemMeta}>
-                {it.portionGrams > 0 ? `${Math.round(it.portionGrams)}g · ` : ''}{fmtKcal(it.kcal)} kcal
-                {it.sugarG >= 1 ? ` · ${t('entry.itemSugar', { s: Math.round(it.sugarG) })}` : ''}
-                {it.isPackaged ? ` · ${t('entry.savedFood')}` : ''}
-              </Text>
-              {it.portionGrams > 0 && (
-                <View style={styles.stepper}>
-                  {([0.75, 1.25] as const).map(f => (
-                    <Pressable
-                      key={f}
-                      style={styles.stepBtn}
-                      onPress={() => { updateItemPortion(it.id, it.portionGrams * f); load(); refresh(); }}
-                    >
-                      <Text style={styles.stepBtnText}>{f < 1 ? t('entry.smaller') : t('entry.bigger')}</Text>
-                    </Pressable>
-                  ))}
+        {items.map(it => {
+          const isEditing = editingItemId === it.id;
+          return (
+            <Card key={it.id} style={styles.itemCard}>
+              <Pressable
+                onPress={() => (isEditing ? closeItemEdit() : startItemEdit(it))}
+                style={styles.itemRow}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.itemName}>
+                    {it.brand ? `${it.brand} ` : ''}{it.name}
+                  </Text>
+                  <Text style={styles.itemMeta}>
+                    {it.portionGrams > 0 ? `${Math.round(it.portionGrams)}g · ` : ''}{fmtKcal(it.kcal)} kcal
+                    {it.sugarG >= 1 ? ` · ${t('entry.itemSugar', { s: Math.round(it.sugarG) })}` : ''}
+                    {it.isPackaged ? ` · ${t('entry.savedFood')}` : ''}
+                  </Text>
+                </View>
+                <View style={{ transform: [{ rotate: isEditing ? '90deg' : '0deg' }] }}>
+                  <Icon name="chevron" size={15} color={C.faint} weight={2} />
+                </View>
+              </Pressable>
+
+              {isEditing && (
+                <View style={styles.editBox}>
+                  <Text style={styles.editLabel}>Name</Text>
+                  <TextInput
+                    value={editName}
+                    onChangeText={setEditName}
+                    style={styles.input}
+                    placeholder="What is it actually?"
+                    placeholderTextColor={C.faint}
+                  />
+
+                  {it.isPackaged && it.kcalPer100g > 0 && (
+                    <Text style={styles.editHint}>
+                      Packaged food · {Math.round(it.kcalPer100g)} kcal per 100g — editing weight rescales from this
+                    </Text>
+                  )}
+
+                  <Text style={styles.editLabel}>Weight (g)</Text>
+                  <TextInput
+                    value={editGrams}
+                    onChangeText={onGramsChange}
+                    style={styles.input}
+                    keyboardType="numeric"
+                    placeholder="grams"
+                    placeholderTextColor={C.faint}
+                  />
+                  <View style={styles.quickRow}>
+                    {QUICK_DELTAS.map(p => (
+                      <Pressable key={p} style={styles.quickBtn} onPress={() => bumpGrams(1 + p / 100)}>
+                        <Text style={styles.quickBtnText}>{p > 0 ? `+${p}%` : `${p}%`}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  <View style={styles.quickRow}>
+                    {QUICK_WEIGHTS.map(g => (
+                      <Pressable key={g} style={styles.quickBtn} onPress={() => setGramsTo(g)}>
+                        <Text style={styles.quickBtnText}>{g}g</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+
+                  <Text style={styles.editLabel}>Calories</Text>
+                  <TextInput
+                    value={editKcal}
+                    onChangeText={setEditKcal}
+                    style={styles.input}
+                    keyboardType="numeric"
+                    placeholder="kcal"
+                    placeholderTextColor={C.faint}
+                  />
+                  <Text style={styles.previewText}>{previewKcal} kcal</Text>
+
+                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+                    <BigButton label={t('common.save')} onPress={saveItemEdit} style={{ flex: 1 }} />
+                    <BigButton label={t('common.cancel')} kind="ghost" onPress={closeItemEdit} style={{ flex: 1 }} />
+                  </View>
+                  <Pressable onPress={() => onDeleteItem(it.id)} style={styles.deleteRow} hitSlop={8}>
+                    <Icon name="trash" size={14} color={C.danger} weight={2} />
+                    <Text style={styles.deleteRowText}>{t('entry.delete')}</Text>
+                  </Pressable>
                 </View>
               )}
-            </View>
-            <Pressable
-              onPress={() => { deleteItem(it.id); load(); refresh(); }}
-              hitSlop={10}
-              style={{ paddingLeft: 10 }}
-            >
-              <Icon name="close" size={15} color={C.faint} weight={2} />
-            </Pressable>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
 
         {adding ? (
           <Card style={{ marginTop: 4 }}>
@@ -288,15 +412,25 @@ const makeStyles = (C: Palette) => StyleSheet.create({
   sliderMarks: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
   sliderMark: { fontSize: 12, color: C.faint },
   sectionTitle: { fontFamily: F.heading, fontSize: 18, color: C.ink, marginTop: 22, marginBottom: 10 },
-  itemRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, padding: 14 },
+  itemCard: { marginBottom: 10, padding: 0, overflow: 'hidden' },
+  itemRow: { flexDirection: 'row', alignItems: 'center', padding: 14 },
   itemName: { fontSize: 15, fontWeight: '600', color: C.ink },
   itemMeta: { fontSize: 13, color: C.muted, marginTop: 3 },
-  stepper: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  stepBtn: {
-    borderWidth: 1, borderColor: C.border, borderRadius: radius.pill,
-    paddingVertical: 5, paddingHorizontal: 12, backgroundColor: C.bg,
+  editBox: {
+    paddingHorizontal: 14, paddingBottom: 14, paddingTop: 2,
+    borderTopWidth: 1, borderTopColor: C.border,
   },
-  stepBtnText: { fontSize: 12, color: C.ink, fontWeight: '600' },
+  editLabel: { fontSize: 11, fontWeight: '700', color: C.faint, textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 10, marginBottom: 6 },
+  editHint: { fontSize: 12, color: C.muted, marginTop: 8, lineHeight: 17 },
+  previewText: { fontFamily: F.heading, fontSize: 20, color: C.amber, marginTop: 6 },
+  quickRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  quickBtn: {
+    borderWidth: 1, borderColor: C.border, borderRadius: radius.pill,
+    paddingVertical: 6, paddingHorizontal: 12, backgroundColor: C.bg,
+  },
+  quickBtnText: { fontSize: 12, color: C.ink, fontWeight: '600' },
+  deleteRow: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center', marginTop: 14, paddingVertical: 4 },
+  deleteRowText: { fontSize: 13, color: C.danger, fontWeight: '600' },
   input: {
     borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 12,
     fontSize: 15, color: C.ink, marginBottom: 10, backgroundColor: C.bg,

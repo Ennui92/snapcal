@@ -283,6 +283,60 @@ export function updateItemPortion(itemId: number, portionGrams: number) {
   recomputeEntryTotals(it.entryId);
 }
 
+// Fix a misidentified food without touching its nutrition — "it's a rooster,
+// not a chicken".
+export function renameItem(itemId: number, name: string) {
+  db.runSync('UPDATE items SET name=? WHERE id=?', name, itemId);
+}
+
+// One call that can correct name, exact weight, and/or exact calories together.
+// - name alone: just relabels, nutrition untouched.
+// - portionGrams without kcal: rescale kcal + macros proportionally from the
+//   old portion (same maths as updateItemPortion).
+// - kcal supplied: set it exactly, and scale only the macros to match the new
+//   kcal ratio (so protein/carbs/fat/sugar keep the same proportions of the
+//   food, just resized to the corrected calorie figure).
+export function updateItemNutrition(
+  itemId: number,
+  changes: { name?: string; portionGrams?: number; kcal?: number },
+) {
+  const it = db.getFirstSync<Item>('SELECT * FROM items WHERE id=?', itemId);
+  if (!it) return;
+
+  const name = changes.name ?? it.name;
+  const portionGrams = changes.portionGrams ?? it.portionGrams;
+
+  let kcal = it.kcal;
+  let proteinG = it.proteinG;
+  let carbsG = it.carbsG;
+  let fatG = it.fatG;
+  let sugarG = it.sugarG;
+
+  if (changes.kcal !== undefined) {
+    // Exact calorie figure wins; scale macros to match the new kcal ratio.
+    const macroFactor = it.kcal > 0 ? changes.kcal / it.kcal : 0;
+    kcal = changes.kcal;
+    proteinG = it.proteinG * macroFactor;
+    carbsG = it.carbsG * macroFactor;
+    fatG = it.fatG * macroFactor;
+    sugarG = it.sugarG * macroFactor;
+  } else if (changes.portionGrams !== undefined) {
+    // No exact kcal given: rescale everything from the weight change.
+    const factor = it.portionGrams > 0 ? portionGrams / it.portionGrams : 0;
+    kcal = it.kcal * factor;
+    proteinG = it.proteinG * factor;
+    carbsG = it.carbsG * factor;
+    fatG = it.fatG * factor;
+    sugarG = it.sugarG * factor;
+  }
+
+  db.runSync(
+    'UPDATE items SET name=?, portionGrams=?, kcal=?, proteinG=?, carbsG=?, fatG=?, sugarG=? WHERE id=?',
+    name, portionGrams, kcal, proteinG, carbsG, fatG, sugarG, itemId,
+  );
+  recomputeEntryTotals(it.entryId);
+}
+
 export function deleteItem(itemId: number) {
   const it = db.getFirstSync<Item>('SELECT * FROM items WHERE id=?', itemId);
   if (!it) return;

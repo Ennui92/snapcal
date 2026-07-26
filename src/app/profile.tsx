@@ -17,6 +17,7 @@ import {
 } from '@/lib/db';
 import { isPremium, trialDaysLeft } from '@/lib/premium';
 import { fmtKcal } from '@/lib/nutrition';
+import { goBackOrHome } from '@/lib/nav';
 
 type LifetimeStats = {
   daysLogged: number;
@@ -201,7 +202,7 @@ export default function ProfileScreen() {
   return (
     <View style={[styles.root, { paddingTop: insets.top + 10 }]}>
       <Grain />
-      <ScreenHeader title="You" left={<IconButton icon="back" onPress={() => router.back()} />} />
+      <ScreenHeader title="You" left={<IconButton icon="back" onPress={() => goBackOrHome()} />} />
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }}>
         <Card style={styles.identityCard}>

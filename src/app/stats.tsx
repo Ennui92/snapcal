@@ -80,6 +80,27 @@ export default function StatsScreen() {
   const kg = net / 7700;
   const avgBurn = days.length ? Math.round(days.reduce((a, d) => a + d.burn, 0) / days.length) : 0;
 
+  // How many days in this range actually have a synced burn row — distinct
+  // from "burn is 0", which can be a genuine rest day. Lets the top summary
+  // tell "not connected" apart from "connected but nothing synced here" apart
+  // from "connected, here's your real net".
+  const burnDaysCount = useMemo(() => {
+    const from = new Date();
+    from.setDate(from.getDate() - (range - 1));
+    return burnedForRange(dayKeyFor(from), dayKeyFor(new Date())).size;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range]);
+  const hasBurnData = connected && burnDaysCount > 0;
+
+  // Plain-language in/out/net for the whole period, using tracked burn rather
+  // than the budget (the budget already bakes tracked burn in, so a net vs.
+  // budget answers "did I stick to plan" while this answers "what actually
+  // happened, energetically").
+  const totalIn = days.reduce((a, d) => a + d.consumed, 0);
+  const totalOut = days.reduce((a, d) => a + d.burn, 0);
+  const netInOut = totalIn - totalOut;
+  const kgInOut = netInOut / 7700;
+
   // Fasting, charted alongside eating instead of living on its own screen.
   const fasting = useMemo(() => {
     const map = fastingHoursForRange(days[0]?.key ?? dayKeyFor(new Date()), days[days.length - 1]?.key ?? dayKeyFor(new Date()));
@@ -196,6 +217,54 @@ export default function StatsScreen() {
         <Chip label={t('stats.last30')} selected={range === 30} onPress={() => setRange(30)} />
         <Chip label="Last 90 days" selected={range === 90} onPress={() => setRange(90)} />
       </View>
+
+      <Section title="At a glance">
+        {!connected ? (
+          <Pressable onPress={() => router.push('/connections')}>
+            <Card style={styles.connectCard}>
+              <Icon name="warn" size={18} color={C.signal} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.connectTitle}>No fitness data</Text>
+                <Text style={styles.connectText}>
+                  No provider connected, so this is calories in only — connect Strava or Health Connect to
+                  see what you burned and your real net.
+                </Text>
+              </View>
+              <Icon name="chevron" size={16} color={C.faint} />
+            </Card>
+          </Pressable>
+        ) : !hasBurnData ? (
+          <Card style={styles.connectCard}>
+            <Icon name="warn" size={18} color={C.faint} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.connectTitle}>Connected, but nothing synced here</Text>
+              <Text style={styles.connectText}>
+                A provider is connected but no burn data landed for {rangeLabel}. Try Sync now on the
+                Connections screen.
+              </Text>
+            </View>
+          </Card>
+        ) : null}
+
+        <Card style={styles.glanceCard}>
+          <View style={styles.glanceRow}>
+            <GlanceStat label="In" value={fmtKcal(totalIn)} color={CHART_COLORS.intake} />
+            <GlanceStat label="Out" value={hasBurnData ? fmtKcal(totalOut) : '—'} color={CHART_COLORS.burn} />
+            <GlanceStat
+              label="Net"
+              value={hasBurnData ? `${netInOut <= 0 ? '−' : '+'}${fmtKcal(Math.abs(netInOut))}` : '—'}
+              color={hasBurnData ? (netInOut <= 0 ? C.signal : C.danger) : C.faint}
+            />
+          </View>
+          {hasBurnData && (
+            <Text style={styles.glanceNote}>
+              {netInOut <= 0
+                ? `Deficit — roughly ${Math.abs(kgInOut).toFixed(1)} kg of fat over ${rangeLabel} at 7700 kcal/kg.`
+                : `Surplus — roughly ${Math.abs(kgInOut).toFixed(1)} kg gained over ${rangeLabel} at 7700 kcal/kg.`}
+            </Text>
+          )}
+        </Card>
+      </Section>
 
       <Section title="Calories in vs out">
         {!connected && (
@@ -336,6 +405,17 @@ export default function StatsScreen() {
   );
 }
 
+function GlanceStat({ label: text, value, color }: { label: string; value: string; color: string }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  return (
+    <View style={styles.glanceStat}>
+      <Text style={[styles.glanceValue, { color }]}>{value}</Text>
+      <Text style={styles.glanceLabel}>{text}</Text>
+    </View>
+  );
+}
+
 function LegendItem({ children, text }: { children: React.ReactNode; text: string }) {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
@@ -386,6 +466,12 @@ const makeStyles = (C: Palette) => StyleSheet.create({
   },
   connectTitle: { fontFamily: F.heading, fontSize: 14, color: C.ink, marginBottom: 2 },
   connectText: { fontSize: 12, color: C.muted, lineHeight: 16 },
+  glanceCard: { paddingVertical: 18 },
+  glanceRow: { flexDirection: 'row' },
+  glanceStat: { flex: 1, alignItems: 'center', gap: 4 },
+  glanceValue: { fontFamily: F.mono, fontSize: 22, letterSpacing: -0.5 },
+  glanceLabel: { ...label, fontSize: 10, color: C.faint },
+  glanceNote: { fontSize: 12, color: C.muted, textAlign: 'center', marginTop: 14, lineHeight: 17 },
   legendRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 14 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendSwatch: { width: 9, height: 9, borderRadius: 2.5 },

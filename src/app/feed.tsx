@@ -20,6 +20,7 @@ import {
 } from '@/lib/db';
 import { localeTag } from '@/lib/i18n';
 import { fmtKcal } from '@/lib/nutrition';
+import { goBackOrHome } from '@/lib/nav';
 
 type Preview = {
   kind: 'meal' | 'day';
@@ -278,7 +279,7 @@ export default function FeedScreen() {
       <Grain />
       <ScreenHeader
         title="Your Wall"
-        left={<IconButton icon="back" onPress={() => router.back()} />}
+        left={<IconButton icon="back" onPress={() => goBackOrHome()} />}
         right={<IconButton icon="hand" onPress={() => router.push('/profile')} />}
       />
 

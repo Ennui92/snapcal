@@ -15,6 +15,7 @@ import { exportAllData, logWeight, saveProfile, setMeta, type Profile } from '@/
 import { getLanguage, LANGS, setLanguage, t } from '@/lib/i18n';
 import { ACTIVITY_KEYS, activityLabel, bmi, bmiCategory, dailyBudget, fmtKcal } from '@/lib/nutrition';
 import { useStore } from '@/lib/store';
+import { goBackOrHome, goToCamera } from '@/lib/nav';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -36,7 +37,7 @@ export default function SettingsScreen() {
     const next = recalc(p);
     saveProfile(next);
     refresh();
-    router.back();
+    goBackOrHome();
   };
 
   const onLogWeight = () => {
@@ -58,7 +59,7 @@ export default function SettingsScreen() {
   const replayTour = () => {
     setMeta('camera_tour_done', '');
     refresh();
-    router.replace('/');
+    goToCamera();
   };
 
   const preview = recalc(p);
@@ -71,7 +72,7 @@ export default function SettingsScreen() {
     <View style={styles.root}>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 40, paddingHorizontal: 16 }}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.headerBtn}><Text style={{ fontSize: 16 }}>‹</Text></Pressable>
+        <Pressable onPress={() => goBackOrHome()} style={styles.headerBtn}><Text style={{ fontSize: 16 }}>‹</Text></Pressable>
         <Text style={styles.headerTitle}>{t('set.title')}</Text>
         <View style={{ width: 42 }} />
       </View>

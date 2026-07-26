@@ -17,6 +17,7 @@ import { consumedForDay, dayKeyFor, daySummaries, getEntriesForDay, getProfile, 
 import { localeTag, t } from '@/lib/i18n';
 import { effectiveBudget, fmtKcal } from '@/lib/nutrition';
 import { useStore } from '@/lib/store';
+import { goToCamera } from '@/lib/nav';
 
 function streakDays(profile: Profile): number {
   // Count consecutive on-budget days with at least one entry, walking back from yesterday.
@@ -111,7 +112,7 @@ export default function TodayScreen() {
     <View style={[styles.root, { paddingTop: insets.top + 10 }]}>
       <Grain />
       <View style={styles.header}>
-        <IconButton icon="camera" onPress={() => router.back()} />
+        <IconButton icon="camera" onPress={goToCamera} />
         <Text style={styles.headerTitle} numberOfLines={1}>{dateLabel}</Text>
         <IconButton icon="settings" onPress={() => router.push('/settings')} />
       </View>
@@ -152,7 +153,21 @@ export default function TodayScreen() {
               <Tab icon="cutlery" text="Recipes" onPress={() => router.push('/recipes')} />
               <Tab icon="clock" text="Fasting" onPress={() => router.push('/fasting')} />
               <Tab icon="plus" text={t('today.addManual')} onPress={() => router.push('/add')} />
-              <Tab icon="share" text="Wall" onPress={() => router.push('/feed')} />
+            </View>
+
+            {/* Today is home, so every destination is listed here by name.
+                Before this the wall was only reachable from the profile and
+                one unlabelled action, which made it effectively invisible. */}
+            <View style={styles.exploreBlock}>
+              <Text style={styles.exploreTitle}>Go to</Text>
+              <View style={styles.actions}>
+                <Tab icon="gallery" text="Photos" onPress={() => router.push('/diary')} />
+                <Tab icon="chart" text="Stats" onPress={() => router.push('/stats')} />
+                <Tab icon="share" text="Wall" onPress={() => router.push('/feed')} />
+                <Tab icon="hand" text="You" onPress={() => router.push('/profile')} />
+                <Tab icon="bolt" text="Fitness" onPress={() => router.push('/connections')} />
+                <Tab icon="settings" text="Settings" onPress={() => router.push('/settings')} />
+              </View>
             </View>
           </View>
         }
@@ -191,6 +206,8 @@ const makeStyles = (C: Palette) => StyleSheet.create({
   streakText: { ...label, fontSize: 9.5, color: C.ink },
   tabs: { flexDirection: 'row', marginTop: 18, gap: 8 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 18, gap: 8 },
+  exploreBlock: { marginTop: 26 },
+  exploreTitle: { ...label, fontSize: 9, color: C.faint, marginBottom: 4, textAlign: 'center' },
   tab: {
     flexDirection: 'row', alignItems: 'center', gap: 7,
     borderWidth: 1, borderColor: C.border, borderRadius: radius.button,

@@ -21,6 +21,7 @@ import { t } from '@/lib/i18n';
 import { mealLabel, mealTypeForNow } from '@/lib/nutrition';
 import { useStore } from '@/lib/store';
 import { ensureMicPermission, saveParsedMeal, transcribeAndParse, type ParsedMeal, type ParsedMealItem } from '@/lib/voice';
+import { goBackOrHome } from '@/lib/nav';
 
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack', 'drink'] as const;
 const DAY_OPTIONS = [
@@ -96,7 +97,7 @@ export default function AddManualScreen() {
     });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     refresh();
-    router.back();
+    goBackOrHome();
   };
 
   // --- from gallery ---
@@ -113,7 +114,7 @@ export default function AddManualScreen() {
       void analyzeEntry(id).then(() => refresh());
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       refresh();
-      router.back();
+      goBackOrHome();
     } catch {
       Alert.alert('Could not add photo', 'Something went wrong reading that photo. Try again.');
     } finally {
@@ -200,7 +201,7 @@ export default function AddManualScreen() {
     saveParsedMeal({ ...parsed, items }, takenAt(), mealType);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     refresh();
-    router.back();
+    goBackOrHome();
   };
 
   const busy = galleryBusy || voiceState === 'recording' || voiceState === 'working';
@@ -213,7 +214,7 @@ export default function AddManualScreen() {
     >
       <ScreenHeader
         title={t('add.title')}
-        left={<IconButton icon="back" onPress={() => router.back()} />}
+        left={<IconButton icon="back" onPress={() => goBackOrHome()} />}
       />
 
       <Text style={styles.lead}>{t('add.lead')}</Text>

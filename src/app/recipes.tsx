@@ -12,6 +12,7 @@ import { Icon } from '@/components/icons';
 import { consumedForDay, dayKeyFor, getProfile } from '@/lib/db';
 import { fmtKcal } from '@/lib/nutrition';
 import { suggestMeals, type MealSuggestion, type SuggestResult } from '@/lib/recipes';
+import { goBackOrHome } from '@/lib/nav';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -65,7 +66,7 @@ export default function RecipesScreen() {
       <Grain />
       <ScreenHeader
         title="NEXT MEAL"
-        left={<IconButton icon="back" onPress={() => router.back()} />}
+        left={<IconButton icon="back" onPress={() => goBackOrHome()} />}
         right={<IconButton icon="refresh" onPress={() => load(true)} tone={busy ? 'default' : 'signal'} />}
       />
 

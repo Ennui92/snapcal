@@ -22,6 +22,7 @@ import { UPLOAD_JPEG_QUALITY, UPLOAD_WIDTH } from '@/lib/config';
 import { identifyProductByPhoto, isLiquidProduct, saveProduct, type AiPhotoProduct } from '@/lib/food-db';
 import { fmtKcal, mealLabel, mealTypeForNow } from '@/lib/nutrition';
 import { useStore } from '@/lib/store';
+import { goBackOrHome } from '@/lib/nav';
 
 const SOURCE_LABEL: Record<string, string> = {
   local: 'Saved locally',
@@ -188,7 +189,7 @@ export default function ScanScreen() {
           SnapCal needs the camera to scan barcodes on packaged food.
         </Text>
         <BigButton label="Enable camera" icon="camera" onPress={requestPermission} style={{ alignSelf: 'stretch' }} />
-        <Pressable onPress={() => router.back()} style={{ marginTop: 16 }} hitSlop={8}>
+        <Pressable onPress={() => goBackOrHome()} style={{ marginTop: 16 }} hitSlop={8}>
           <Text style={styles.backLinkText}>Go back</Text>
         </Pressable>
       </View>
@@ -311,7 +312,7 @@ export default function ScanScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     refresh();
     setLogged(true);
-    setTimeout(() => router.back(), 650);
+    setTimeout(() => goBackOrHome(), 650);
   };
 
   const gramsAndMealSection = (
@@ -370,7 +371,7 @@ export default function ScanScreen() {
       {!sheetOpen && <Frame />}
 
       <View style={[styles.topBar, { top: insets.top + 10 }]}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
+        <Pressable onPress={() => goBackOrHome()} style={styles.backBtn} hitSlop={8}>
           <Icon name="back" size={18} color={C.ink} />
         </Pressable>
         <View style={styles.titleChip}>

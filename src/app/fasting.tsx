@@ -17,6 +17,7 @@ import {
   CUSTOM_LABEL, endFast, type FastingSession, getActiveSession, getRecentSessions,
   initFasting, MAX_CUSTOM_HOURS, MIN_CUSTOM_HOURS, PRESETS, startFast,
 } from '@/lib/fasting';
+import { goBackOrHome } from '@/lib/nav';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const SWEEP = 270;
@@ -233,7 +234,7 @@ export default function FastingScreen() {
       <Grain />
       <ScreenHeader
         title="Fasting"
-        left={<IconButton icon="back" onPress={() => router.back()} />}
+        left={<IconButton icon="back" onPress={() => goBackOrHome()} />}
       />
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 32 }}

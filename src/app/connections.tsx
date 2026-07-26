@@ -9,7 +9,8 @@ import { F, type Palette } from '@/constants/theme';
 import { useColors } from '@/lib/theme-context';
 import { BigButton, Card } from '@/components/ui';
 import {
-  anyProviderConnected, burnedForDay, lastSyncAt, setUseTrackedActivity, syncActivity, useTrackedActivity,
+  anyProviderConnected, burnedForDay, lastSyncAt, lastSyncError, lastSyncReport,
+  setUseTrackedActivity, syncActivity, useTrackedActivity,
 } from '@/lib/activity';
 import { dayKeyFor } from '@/lib/db';
 import { localeTag, t } from '@/lib/i18n';
@@ -22,6 +23,7 @@ import {
 } from '@/lib/strava';
 import { useStore } from '@/lib/store';
 import { Icon, type IconName } from '@/components/icons';
+import { goBackOrHome } from '@/lib/nav';
 
 export default function ConnectionsScreen() {
   const C = useColors();
@@ -91,11 +93,13 @@ export default function ConnectionsScreen() {
 
   const burn = burnedForDay(dayKeyFor(new Date()));
   const last = lastSyncAt();
+  const report = lastSyncReport();
+  const syncErr = lastSyncError();
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 40, paddingHorizontal: 16 }}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.headerBtn}><Text style={{ fontSize: 16 }}>‹</Text></Pressable>
+        <Pressable onPress={() => goBackOrHome()} style={styles.headerBtn}><Text style={{ fontSize: 16 }}>‹</Text></Pressable>
         <Text style={styles.headerTitle}>{t('conn.title')}</Text>
         <View style={{ width: 42 }} />
       </View>
@@ -175,6 +179,47 @@ export default function ConnectionsScreen() {
           <Text style={styles.syncMeta}>
             {t('conn.lastSync', { when: last ? new Date(last).toLocaleString(localeTag(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : t('conn.never') })}
           </Text>
+
+          <Card style={styles.reportCard}>
+            <View style={styles.reportHeader}>
+              <Icon name="chart" size={15} color={C.muted} />
+              <Text style={styles.reportTitle}>What the last sync found</Text>
+            </View>
+            {!report ? (
+              <Text style={styles.reportLine}>No sync has run yet. Tap Sync now above.</Text>
+            ) : (
+              <>
+                <Text style={styles.reportLine}>
+                  Providers: {report.providersSucceeded.length ? report.providersSucceeded.join(', ') : 'none responded'}
+                </Text>
+                {report.hc && (
+                  <>
+                    <Text style={styles.reportLine}>
+                      Active calories: {report.hc.activeDaysFound > 0
+                        ? `${report.hc.activeDaysFound} of ${report.hc.daysChecked} days`
+                        : 'no data'}
+                    </Text>
+                    {report.hc.metricUsed === 'total_estimate' && (
+                      <Text style={styles.reportLine}>
+                        This phone/provider isn&apos;t reporting active calories directly, so we estimated it from
+                        total calories minus resting burn ({report.hc.totalFallbackDaysFound} of {report.hc.daysChecked} days).
+                      </Text>
+                    )}
+                    {report.hc.metricUsed === 'none' && (
+                      <Text style={[styles.reportLine, { color: C.danger }]}>
+                        Health Connect returned no calorie data at all. Check that SnapCal has calorie permissions
+                        granted in Health Connect&apos;s own settings.
+                      </Text>
+                    )}
+                    <Text style={styles.reportLine}>
+                      Steps: {report.hc.stepDaysFound > 0 ? `${report.hc.stepDaysFound} of ${report.hc.daysChecked} days` : 'no data'}
+                    </Text>
+                  </>
+                )}
+              </>
+            )}
+            {syncErr && <Text style={[styles.reportLine, { color: C.danger }]}>Error: {syncErr}</Text>}
+          </Card>
         </>
       )}
 
@@ -254,4 +299,8 @@ const makeStyles = (C: Palette) => StyleSheet.create({
   },
   ghostBtnText: { color: C.muted, fontWeight: '600', fontSize: 13 },
   syncMeta: { fontSize: 12, color: C.faint, textAlign: 'center', marginTop: 8 },
+  reportCard: { marginTop: 14 },
+  reportHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  reportTitle: { fontSize: 12.5, color: C.ink, fontWeight: '700' },
+  reportLine: { fontSize: 12.5, color: C.muted, lineHeight: 18, marginTop: 4 },
 });

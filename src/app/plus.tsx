@@ -11,6 +11,7 @@ import { Grain, IconButton } from '@/components/ui';
 import { Icon } from '@/components/icons';
 import { setEntitlement, trialDaysLeft } from '@/lib/premium';
 import { useStore } from '@/lib/store';
+import { goBackOrHome } from '@/lib/nav';
 
 const PLUS_PERKS = [
   'Unlimited AI photo scans',
@@ -46,7 +47,7 @@ export default function PlusScreen() {
     setEntitlement(true);
     refresh();
     Alert.alert('You are on Plus', `${planLabel} unlocked. (Billing is a placeholder until the store launch.)`, [
-      { text: 'Nice', onPress: () => router.back() },
+      { text: 'Nice', onPress: () => goBackOrHome() },
     ]);
   };
 
@@ -55,7 +56,7 @@ export default function PlusScreen() {
       <Grain />
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 30, paddingHorizontal: 20 }}>
         <View style={styles.head}>
-          <IconButton icon="close" onPress={() => router.back()} />
+          <IconButton icon="close" onPress={() => goBackOrHome()} />
           <View style={{ width: 40 }} />
         </View>
 

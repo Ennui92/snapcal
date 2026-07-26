@@ -10,6 +10,7 @@ import { Icon } from '@/components/icons';
 import { IconButton } from '@/components/ui';
 import { ListDayBlock, PhotoDayBlock, type DayGroup } from '@/components/photo-grid';
 import { dayKeyFor, daySummaries, getEntriesForDay } from '@/lib/db';
+import { goBackOrHome } from '@/lib/nav';
 
 type Mode = 'photo' | 'list';
 
@@ -45,7 +46,7 @@ export default function DiaryScreen() {
   return (
     <View style={[styles.root, { paddingTop: insets.top + 10 }]}>
       <View style={styles.header}>
-        <IconButton icon="back" onPress={() => router.back()} />
+        <IconButton icon="back" onPress={() => goBackOrHome()} />
 
         <View style={styles.segment}>
           <Pressable
