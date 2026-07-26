@@ -85,10 +85,13 @@ if [[ "$PUBLISH" == "1" ]]; then
   TAG="v${VERSION}"
   echo "publishing immutable ${TAG}"
   # Immutable: a link handed to a human must never change under them mid-download.
+  # NOTE: `gh release upload file#label` sets the display label, NOT the
+  # filename. Copy to the intended basename so the download URL reads properly.
+  cp "$TMP/app.apk" "$TMP/${ASSET}"
   if gh release view "$TAG" >/dev/null 2>&1; then
-    gh release upload "$TAG" "$TMP/app.apk#${ASSET}" --clobber
+    gh release upload "$TAG" "$TMP/${ASSET}" --clobber
   else
-    gh release create "$TAG" "$TMP/app.apk#${ASSET}" \
+    gh release create "$TAG" "$TMP/${ASSET}" \
       --title "${APP_NAME} ${VERSION}" \
       --notes "$(printf 'Verified build of %s.\n\nsha256: `%s`\nsigner SHA-1: `%s`\ndownload: %s MB\n\nThis tag is immutable — the file behind this link will not change, so a download cannot be replaced mid-transfer.' "$VERSION" "$SHA256" "$SHA1" "$((ACTUAL/1048576))")"
   fi
